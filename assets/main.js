@@ -4,10 +4,6 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const SITE = window.SITE;
-  const store = {
-    get(k) { try { return sessionStorage.getItem(k); } catch { return null; } },
-    set(k, v) { try { sessionStorage.setItem(k, v); } catch { /* noop */ } },
-  };
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -81,57 +77,10 @@
     setTimeout(() => el.remove(), 4400);
   }
 
-  /* ---------- 起動画面 ---------- */
-  const boot = $('#boot');
-  const bootLines = [
-    'PITAN-BIOS 20.27',
-    'mem check ............ 76K OK',
-    'mount /works ......... ' + SITE.works.length + ' entries',
-    'texture blocks ....... done',
-    'inject bugs .......... done (on purpose)',
-    '',
-    '> hello.',
-  ];
-  const endBoot = () => { boot.classList.add('done'); store.set('booted', '1'); startHero(); };
-  if (store.get('booted') || reduced || location.search.includes('noboot')) {
-    boot.remove();
-    startHero();
-  } else {
-    let i = 0;
-    const log = $('#boot-log');
-    const timer = setInterval(() => {
-      log.textContent += bootLines[i++] + '\n';
-      if (i >= bootLines.length) { clearInterval(timer); setTimeout(endBoot, 450); }
-    }, 120);
-    const skip = () => { clearInterval(timer); endBoot(); };
-    boot.addEventListener('click', skip, { once: true });
-    addEventListener('keydown', skip, { once: true });
-  }
-
-  /* ---------- タイトル ---------- */
-  function scramble(el, text, dur = 800) {
-    const chars = '#%&*+<>/\\[]{}01=?ABCDEFXYZ';
-    const start = performance.now();
-    (function frame(now) {
-      const p = Math.min(1, (now - start) / dur);
-      const n = Math.floor(text.length * p);
-      el.textContent = text.slice(0, n) + Array.from(text.slice(n), () => chars[(Math.random() * chars.length) | 0]).join('');
-      if (p < 1) requestAnimationFrame(frame);
-    })(start);
-  }
-  function startHero() {
-    const t = $('[data-scramble]');
-    if (!reduced) scramble(t, t.dataset.scramble);
-    t.addEventListener('mouseenter', () => scramble(t, t.dataset.scramble, 450));
-  }
-
-  /* ---------- 座標表示 ---------- */
+  /* ---------- 座標表示（背景の方眼 32px を 1 ブロックとして、ページ上端からの深さ） ---------- */
   const cy = $('#coord-y');
-  const cp = $('#coord-p');
   const onScroll = () => {
-    const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
-    cy.textContent = String(Math.round(scrollY)).padStart(5, '0');
-    cp.textContent = String(Math.round((scrollY / max) * 100)).padStart(3, '0');
+    cy.textContent = String(-Math.round(scrollY / 32));
   };
   addEventListener('scroll', onScroll, { passive: true });
   onScroll();
@@ -255,19 +204,6 @@
     if (seen.size === slots.length) achieve('inv', '持ち物を全部確認した', '▣');
   }));
 
-  /* ---------- 覗き込み ---------- */
-  const peek = $('#peek');
-  let lastPeek = Date.now();
-  addEventListener('scroll', () => {
-    const now = Date.now();
-    if (reduced || now - lastPeek < 15000 || scrollY < innerHeight) return;
-    lastPeek = now;
-    const ftp = Math.random() < 0.5;
-    peek.src = `assets/img/${ftp ? 'ftp' : 'http'}.png`;
-    peek.classList.toggle('left', !ftp);
-    peek.classList.add('show');
-    setTimeout(() => peek.classList.remove('show'), 1600);
-  }, { passive: true });
 
   /* ---------- ブロック破壊 → FTPちゃん / HTTPちゃんが作品を届ける ---------- */
   // Web 系の作品は HTTPちゃん、それ以外はランダム

@@ -2,7 +2,7 @@
     {
         "work": "wikichree_com",
         "name": "WikiChree.COM",
-        "category": "WEB SERVICE",
+        "category": "Webサービス",
         "summary": "PukiWikiをベースにしたWikiホスティングサービス。",
         "detail": "WikiFarmとして複数のWikiを運営できるサービス。PukiWikiに加え、DokuWiki系エンジンにも対応。",
         "tags": [
@@ -17,7 +17,7 @@
     {
         "work": "modparks",
         "name": "ModParks",
-        "category": "WEB PLATFORM",
+        "category": "Webプラットフォーム",
         "summary": "Minecraft Modの公開・発見・管理を支援するプラットフォーム。",
         "detail": "Next.jsとCloudflareを利用。GitHub Releases、Modrinth、CurseForgeなどの情報連携や、作品の公開・管理機能を開発。",
         "tags": [
@@ -32,7 +32,7 @@
     {
         "work": "wevocal-studio",
         "name": "WeVocal",
-        "category": "WEB AUDIO",
+        "category": "ブラウザで動く音声ツール",
         "summary": "音MAD制作向けのブラウザ音声ツール群。",
         "detail": "Synth、Extractor、Converter、Analyzer、Studioを開発。Rustで実装した音声処理をWebAssembly化し、Web Worker上で実行。",
         "tags": [
@@ -47,7 +47,7 @@
     {
         "work": "itemalchemy",
         "name": "MCPitanLib & Minecraft Mods",
-        "category": "JAVA / OPEN SOURCE",
+        "category": "Minecraft向けライブラリ・Mod",
         "summary": "Minecraft向けライブラリと複数のMod。",
         "detail": "Fabric、Forge、NeoForgeなど複数のModローダーやMinecraftバージョンに対応するライブラリ・Modを開発、保守。",
         "tags": [
@@ -62,7 +62,7 @@
     {
         "work": "mc_block_model_viewer",
         "name": "Minecraft Block Model Viewer",
-        "category": "DESKTOP SOFTWARE",
+        "category": "デスクトップアプリ",
         "summary": "Minecraftのブロックモデルを表示し、画像として書き出すツール。",
         "detail": "Windows / macOS / Linux向け。Minecraftのブロックモデルをレンダリングし、画像としてエクスポートできるデスクトップアプリ。",
         "tags": [

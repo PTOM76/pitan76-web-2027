@@ -22,6 +22,12 @@ function h(mixed $v): string {
 }
 
 /** 説明文の HTML を除去して 1 行のテキストにする。 */
+/** works-info の日付（2026/08/24、20260926 など）を Y-m-d にそろえる。読めなければ空文字。 */
+function ymd(?string $d): string {
+    if (!$d || !preg_match('/^(\d{4})\D?(\d{1,2})\D?(\d{1,2})/', $d, $m)) return '';
+    return sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]);
+}
+
 function plain(string $html): string {
     $t = html_entity_decode(strip_tags(preg_replace('~<br\s*/?>~i', ' ', $html)), ENT_QUOTES | ENT_HTML5, 'UTF-8');
     return trim(preg_replace('/\s+/u', ' ', $t));
@@ -108,7 +114,12 @@ $projects = json_data("$root/data/projects.json");
 $works = fetch_works("$cacheDir/works.json", $dev);
 $thumbs = work_thumbs($works, $cacheDir);
 
-usort($works, static fn($a, $b) => strcmp($b['updateAt'] ?? $b['createAt'] ?? '', $a['updateAt'] ?? $a['createAt'] ?? ''));
+foreach ($works as &$w) {
+    $w['createAt'] = ymd($w['createAt'] ?? null);
+    $w['updateAt'] = ymd($w['updateAt'] ?? null);
+}
+unset($w);
+usort($works, static fn($a, $b) => strcmp($b['updateAt'] ?: $b['createAt'], $a['updateAt'] ?: $a['createAt']));
 
 // テンプレートと JS で使う作品データ
 $featuredIds = array_column($projects, 'work');
@@ -120,7 +131,9 @@ foreach ($works as $w) {
         'name' => $w['name'],
         'desc' => plain($w['description'] ?? ''),
         'cat' => CATEGORY_LABELS[$w['category'] ?? 'misc'] ?? 'Misc',
-        'year' => substr($w['updateAt'] ?? $w['createAt'] ?? '', 0, 4),
+        'year' => substr($w['updateAt'] ?: $w['createAt'], 0, 4),
+        'date' => $w['updateAt'] ?: $w['createAt'],
+        'updated' => $w['updateAt'] !== '' && $w['createAt'] !== $w['updateAt'],
         'url' => $w['site']['modparks'] ?? $w['url'] ?? $w['site']['github'] ?? '',
         'tags' => $w['tag'] ?? [],
         'thumb' => isset($thumbs[$w['id']]) ? "assets/works/{$thumbs[$w['id']]}" : null,
