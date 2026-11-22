@@ -14,6 +14,8 @@
     try { on = localStorage.getItem('sound') !== 'off'; } catch { /* noop */ }
     const ac = () => {
       if (!on) return null;
+      // ページを一度も操作していない間はブラウザが再生を許可しないため、何もしない
+      if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return null;
       ctx ??= new (window.AudioContext || window.webkitAudioContext)();
       if (ctx.state === 'suspended') ctx.resume();
       return ctx;
