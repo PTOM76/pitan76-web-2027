@@ -1,8 +1,12 @@
-// 背景のボクセル空間。クリックでブロックを壊せる。
+// 作品ブロックの 3D 空間。
+// - 各ブロックの面には作品画像を貼る
+// - 代表作のブロックは、スクロールで対応する枠（.work-slot）の位置へ移動する
+// - クリックで壊すと 'block-break' イベントで作品を通知する
 import * as THREE from 'three';
 
 const canvas = document.getElementById('scene');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const works = window.SITE?.works ?? [];
 
 let renderer;
 try {
@@ -12,158 +16,370 @@ try {
   throw new Error('WebGL is not available');
 }
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.classList.add('gl');
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x0a0d18, 14, 34);
-const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-camera.position.set(0, 0, 16);
-
-scene.add(new THREE.HemisphereLight(0xcfe8ff, 0x1a1030, 1.4));
-const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-sun.position.set(5, 8, 6);
+const FOV = 40;
+const CAM_Z = 12;
+const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 100);
+camera.position.z = CAM_Z;
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b2a0, 2.2));
+const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+sun.position.set(4, 6, 8);
 scene.add(sun);
 
-// 16x16 のドット絵風テクスチャ
-function pixelTexture() {
+const INK = 0x161514;
+// 16x16 のドット絵テクスチャ。ore を渡すと石に鉱石の粒を混ぜる
+function stoneTexture(ore) {
   const c = document.createElement('canvas');
   c.width = c.height = 16;
   const g = c.getContext('2d');
   for (let y = 0; y < 16; y++) {
     for (let x = 0; x < 16; x++) {
-      const v = 200 + Math.floor(Math.random() * 55);
-      g.fillStyle = `rgb(${v},${v},${v})`;
+      const v = 150 + Math.floor(Math.random() * 45);
+      g.fillStyle = `rgb(${v},${v - 2},${v - 8})`;
       g.fillRect(x, y, 1, 1);
     }
   }
-  g.fillStyle = 'rgba(0,0,0,.35)';
-  g.fillRect(0, 0, 16, 1); g.fillRect(0, 15, 16, 1); g.fillRect(0, 0, 1, 16); g.fillRect(15, 0, 1, 16);
+  if (ore) {
+    // 2x2 前後の粒を散らし、縁を暗くして浮き出させる
+    for (let n = 0; n < 7; n++) {
+      const x = 1 + Math.floor(Math.random() * 13);
+      const y = 1 + Math.floor(Math.random() * 13);
+      g.fillStyle = 'rgba(22,21,20,.55)';
+      g.fillRect(x + 1, y + 1, 2, 2);
+      g.fillStyle = ore;
+      g.fillRect(x, y, 2, 2);
+      g.fillStyle = 'rgba(255,255,255,.7)';
+      g.fillRect(x, y, 1, 1);
+    }
+  }
   const t = new THREE.CanvasTexture(c);
-  t.magFilter = THREE.NearestFilter;
-  t.minFilter = THREE.NearestFilter;
+  t.magFilter = t.minFilter = THREE.NearestFilter;
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
 
-const palette = ['#9fd3ff', '#59b8ff', '#ffc4ec', '#ffb627', '#b8f5c4', '#d6e4ff', '#6c7bb0'].map((c) => new THREE.Color(c));
-const COUNT = innerWidth < 700 ? 90 : 180;
+// 飾りブロックは灰色の石。作品入りで画像がないものはカテゴリ色の鉱石にする
+const stoneTex = stoneTexture(null);
+const ORE = { 'Minecraft Mod': '#ffad0a', 'MC Plugin': '#ffad0a', PukiWiki: '#5fb4ff', Web: '#ff7cc8', Extension: '#ff7cc8', App: '#7be08f' };
+const oreTex = new Map();
+const oreColor = (cat) => ORE[cat] || '#ffffff';
+const oreTexture = (cat) => {
+  const c = oreColor(cat);
+  if (!oreTex.has(c)) oreTex.set(c, stoneTexture(c));
+  return oreTex.get(c);
+};
+
+const loader = new THREE.TextureLoader();
 const geo = new THREE.BoxGeometry(1, 1, 1);
-const mat = new THREE.MeshLambertMaterial({ map: pixelTexture() });
-const mesh = new THREE.InstancedMesh(geo, mat, COUNT);
-mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-scene.add(mesh);
+const edges = new THREE.EdgesGeometry(geo);
+const edgeMat = new THREE.LineBasicMaterial({ color: INK });
 
 const blocks = [];
-for (let i = 0; i < COUNT; i++) {
-  const r = 4 + Math.random() * 12;
-  const a = Math.random() * Math.PI * 2;
-  blocks.push({
-    base: new THREE.Vector3(Math.cos(a) * r, (Math.random() - 0.5) * 44, Math.sin(a) * r - 6),
-    rot: new THREE.Euler(Math.random() * 3, Math.random() * 3, 0),
-    spin: (Math.random() - 0.5) * 0.6,
+const featured = [];
+
+function makeBlock(work, i) {
+  let mat;
+  if (work?.thumb) {
+    mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+    loader.load(work.thumb + '.jpg', (t) => {
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 4;
+      mat.map = t;
+      mat.needsUpdate = true;
+    });
+  } else if (work) {
+    mat = new THREE.MeshLambertMaterial({ map: oreTexture(work.cat) });
+  } else {
+    mat = new THREE.MeshLambertMaterial({ map: stoneTex });
+  }
+  void i;
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.add(new THREE.LineSegments(edges, edgeMat));
+  scene.add(mesh);
+  const b = {
+    mesh, work,
+    // ページ上の位置（px）と奥行き
+    px: Math.random(),
+    py: Math.random(),
+    z: -2 - Math.random() * 12,
+    size: 0.6 + Math.random() * 0.9,
+    rot: new THREE.Vector3(Math.random() * 6, Math.random() * 6, 0),
+    spin: (Math.random() - 0.5) * 0.5,
     phase: Math.random() * 10,
-    size: 0.4 + Math.random() * 0.9,
     alive: 1,
     respawn: 0,
-  });
-  mesh.setColorAt(i, palette[i % palette.length]);
+    hover: 0,
+    push: new THREE.Vector3(),
+  };
+  mesh.userData.block = b;
+  blocks.push(b);
+  return b;
 }
 
+works.forEach((w, i) => {
+  const b = makeBlock(w, i);
+  if (w.featured !== null && w.featured !== undefined) {
+    b.slot = document.querySelector(`[data-slot="${w.featured}"]`);
+    if (b.slot) featured.push(b);
+  }
+});
+const FILLER = innerWidth < 700 ? 20 : 50;
+for (let i = 0; i < FILLER; i++) makeBlock(null, i);
+
+// 中央の本文を避けて左右に寄せる
+for (const b of blocks) {
+  const side = Math.random() < 0.5 ? -1 : 1;
+  b.px = side * (0.35 + Math.random() * 0.75);
+}
+
+// 採掘中のひび割れ（10 段階）。ひびを描いた箱をブロックに重ねる
+const crackTex = Array.from({ length: 10 }, (_, stage) => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 16;
+  const g = c.getContext('2d');
+  g.fillStyle = 'rgba(22,21,20,.85)';
+  let rnd = 76;
+  const r = () => ((rnd = (rnd * 9301 + 49297) % 233280) / 233280);
+  for (let line = 0; line <= stage; line++) {
+    let x = 8, y = 8;
+    const dx = r() < 0.5 ? -1 : 1, dy = r() < 0.5 ? -1 : 1;
+    for (let k = 0; k < 3 + stage; k++) {
+      g.fillRect(x, y, 1, 1);
+      if (r() < 0.5) x += dx; else y += dy;
+      x = Math.max(0, Math.min(15, x)); y = Math.max(0, Math.min(15, y));
+    }
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.magFilter = t.minFilter = THREE.NearestFilter;
+  return t;
+});
+const crack = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, map: crackTex[0] }));
+crack.scale.setScalar(1.01);
+crack.visible = false;
+const MINE_TIME = 0.6;
+let mining = null;        // { b, progress, stage }
+let pointerHeld = false;
+
 // 破片
-const shardGeo = new THREE.BoxGeometry(0.16, 0.16, 0.16);
+const shardGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
 const shards = [];
-function burst(pos, color) {
-  for (let i = 0; i < 14; i++) {
+function burst(point, color) {
+  for (let i = 0; i < 18; i++) {
     const m = new THREE.Mesh(shardGeo, new THREE.MeshLambertMaterial({ color, transparent: true }));
-    m.position.copy(pos);
-    m.userData.v = new THREE.Vector3((Math.random() - 0.5) * 6, Math.random() * 6, (Math.random() - 0.5) * 6);
-    m.userData.life = 1.2;
+    m.position.copy(point);
+    m.userData.v = new THREE.Vector3((Math.random() - 0.5) * 7, Math.random() * 7, (Math.random() - 0.5) * 7);
+    m.userData.life = 1.1;
     scene.add(m);
     shards.push(m);
   }
 }
 
+// 画面座標（px）→ 奥行き z のワールド座標
+const vh = () => innerHeight;
+function viewHeightAt(z) {
+  return 2 * Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * (CAM_Z - z);
+}
+function screenToWorld(x, y, z, out) {
+  const h = viewHeightAt(z);
+  const w = h * camera.aspect;
+  return out.set((x / innerWidth - 0.5) * w, -(y / innerHeight - 0.5) * h, z);
+}
+
 // 入力
 const mouse = new THREE.Vector2();
-const target = new THREE.Vector2();
-addEventListener('pointermove', (e) => {
-  target.set(e.clientX / innerWidth - 0.5, e.clientY / innerHeight - 0.5);
-});
+const mouseTarget = new THREE.Vector2();
+const ndc = new THREE.Vector2(9, 9);
 const ray = new THREE.Raycaster();
+const UI = 'a,button,input,label,p,h1,h2,h3,li,td,th,dl,.work-text,.bar,.term-win,.loot-card,.spec,.inv,.filters';
+let hovered = null;
 let broken = 0;
-const IGNORE = 'a,button,input,label,.slot,.aw,.work,.stat,.inv-group,.unlock,.timeline,.term-win,.nav,.bubble,.marquee,p,h1,h2,h3';
+
+addEventListener('pointermove', (e) => {
+  mouseTarget.set(e.clientX / innerWidth - 0.5, e.clientY / innerHeight - 0.5);
+  if (e.target.closest(UI)) { ndc.set(9, 9); return; }
+  ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+});
 addEventListener('pointerdown', (e) => {
-  if (e.button !== 0 || e.target.closest(IGNORE)) return;
-  const p = new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-  ray.setFromCamera(p, camera);
-  const hit = ray.intersectObject(mesh)[0];
-  if (!hit || !blocks[hit.instanceId].alive) return;
-  const b = blocks[hit.instanceId];
+  if (e.button !== 0 || e.target.closest(UI)) return;
+  // タッチでは pointermove が先に来ないため、ここでも位置を更新する
+  ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  pointerHeld = true;
+});
+const release = () => { pointerHeld = false; stopMining(); };
+addEventListener('pointerup', release);
+addEventListener('pointercancel', release);
+addEventListener('blur', release);
+
+function stopMining() {
+  if (!mining) return;
+  mining.b.mesh.remove(crack);
+  crack.visible = false;
+  mining = null;
+}
+function breakBlock(b) {
+  stopMining();
   b.alive = 0;
-  b.respawn = 10;
-  const c = new THREE.Color();
-  mesh.getColorAt(hit.instanceId, c);
-  burst(hit.point, c);
+  b.respawn = 14;
+  const c = new THREE.Color(b.work ? oreColor(b.work.cat) : '#9a968c');
+  burst(b.mesh.getWorldPosition(new THREE.Vector3()), c);
   broken++;
-  dispatchEvent(new CustomEvent('block-break', { detail: { count: broken } }));
+  dispatchEvent(new CustomEvent('block-break', { detail: { count: broken, work: b.work } }));
+}
+function updateMining(dt) {
+  if (!pointerHeld || !hovered) { stopMining(); return; }
+  if (!mining || mining.b !== hovered) {
+    stopMining();
+    mining = { b: hovered, progress: 0, stage: -1 };
+    hovered.mesh.add(crack);
+    crack.visible = true;
+  }
+  mining.progress += dt / MINE_TIME;
+  const stage = Math.min(9, Math.floor(mining.progress * 10));
+  if (stage !== mining.stage) {
+    mining.stage = stage;
+    crack.material.map = crackTex[stage];
+    crack.material.needsUpdate = true;
+    if (stage % 3 === 0) dispatchEvent(new CustomEvent('block-hit'));
+  }
+  if (mining.progress >= 1) breakBlock(mining.b);
+}
+
+// 索引の行にホバーすると、その作品のブロックを行の横へ呼び出す
+const byId = new Map(blocks.filter((b) => b.work).map((b) => [b.work.id, b]));
+let summoned = null;     // { b, el }
+addEventListener('summon', (e) => {
+  const b = e.detail ? byId.get(e.detail.id) : null;
+  if (summoned && summoned.b !== b) summoned.b.summonEl = null;
+  summoned = b ? { b, el: e.detail.el } : null;
+  if (b) b.summonEl = e.detail.el;
 });
 
 let bug = false;
 addEventListener('bugmode', (e) => { bug = e.detail; });
 
 function resize() {
-  const w = innerWidth;
-  const h = innerHeight;
-  renderer.setSize(w, h, false);
-  camera.aspect = w / h;
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize);
 resize();
 
-const dummy = new THREE.Object3D();
+const home = new THREE.Vector3();
+const slotPos = new THREE.Vector3();
 const clock = new THREE.Clock();
+const smooth = (t) => t * t * (3 - 2 * t);
 let frames = 0;
 let fpsTime = 0;
-let fps = 0;
 
 function tick() {
   const dt = Math.min(clock.getDelta(), 0.05);
-  const t = clock.elapsedTime;
-  mouse.lerp(target, 0.05);
+  const t = reduced ? 0 : clock.elapsedTime;
+  mouse.lerp(mouseTarget, 0.06);
+  const docH = Math.max(document.documentElement.scrollHeight, innerHeight);
 
-  const scroll = scrollY / Math.max(1, document.body.scrollHeight - innerHeight);
-  camera.position.x = mouse.x * 3;
-  camera.position.y = -mouse.y * 2 - scroll * 30 + 8;
-  camera.lookAt(0, camera.position.y - mouse.y, -6);
-  mesh.rotation.y = scroll * Math.PI * 0.8 + (reduced ? 0 : t * 0.02);
+  // ホバー判定
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(blocks.filter((b) => b.alive === 1).map((b) => b.mesh), false)[0];
+  const prevHover = hovered;
+  hovered = hit ? hit.object.userData.block : null;
+  if (hovered !== prevHover) dispatchEvent(new CustomEvent('block-hover', { detail: hovered ? { work: hovered.work } : null }));
+  document.body.style.cursor = hovered ? 'crosshair' : '';
+  updateMining(dt);
+  const mouseWorld = new THREE.Vector3();
 
-  const speed = bug ? 8 : 1;
-  for (let i = 0; i < COUNT; i++) {
-    const b = blocks[i];
-    if (!b.alive) {
-      b.respawn -= dt;
-      if (b.respawn <= 0) b.alive = 0.01;
-    } else if (b.alive < 1) {
-      b.alive = Math.min(1, b.alive + dt * 2);
-    }
-    dummy.position.copy(b.base);
-    if (!reduced) {
-      dummy.position.y += Math.sin(t * 0.6 + b.phase) * 0.4;
-      dummy.rotation.set(b.rot.x + t * b.spin * speed, b.rot.y + t * b.spin * 0.7 * speed, 0);
+  for (const b of blocks) {
+    // 視差付きでページと一緒に流れる
+    const depth = (CAM_Z - b.z) / CAM_Z;        // 1〜2
+    const parallax = 0.25 + 0.55 / depth;
+    const span = docH * parallax + innerHeight * 1.4;
+    let sy = b.py * span - scrollY * parallax - innerHeight * 0.2;
+    sy = ((sy % span) + span) % span - innerHeight * 0.2;
+    const hz = viewHeightAt(b.z);
+    home.set(b.px * hz * camera.aspect * 0.5 + mouse.x * (1.5 / depth), -(sy / vh() - 0.5) * hz - mouse.y * (1 / depth), b.z);
+    home.y += Math.sin(t * 0.7 + b.phase) * 0.25;
+
+    // カーソルの近くのブロックは少し逃げる（採掘中のブロックは除く）
+    screenToWorld((mouseTarget.x + 0.5) * innerWidth, (mouseTarget.y + 0.5) * innerHeight, b.z, mouseWorld);
+    const dxm = home.x - mouseWorld.x;
+    const dym = home.y - mouseWorld.y;
+    const dist = Math.hypot(dxm, dym);
+    const reach = 2.2;
+    if (dist < reach && dist > 0.001 && mining?.b !== b && !reduced) {
+      const f = (reach - dist) / reach * 0.9;
+      b.push.x += ((dxm / dist) * f - b.push.x) * 0.08;
+      b.push.y += ((dym / dist) * f - b.push.y) * 0.08;
     } else {
-      dummy.rotation.copy(b.rot);
+      b.push.multiplyScalar(0.94);
     }
-    dummy.scale.setScalar(b.size * b.alive);
-    dummy.updateMatrix();
-    mesh.setMatrixAt(i, dummy.matrix);
+    home.add(b.push);
+
+    const base = b.size * Math.min(1, camera.aspect * 0.9);   // 縦長画面では小さくする
+    let scale = base;
+    let k = 0;
+    b.summonK = THREE.MathUtils.clamp((b.summonK ?? 0) + (b.summonEl ? dt : -dt) * 4, 0, 1);
+    if (b.summonK > 0 && b.summonEl) b.lastSummonEl = b.summonEl;
+    if (b.summonK > 0 && b.lastSummonEl) {
+      const r = b.lastSummonEl.getBoundingClientRect();
+      k = smooth(b.summonK);
+      const z = 3;
+      // 索引の右の余白に置く（余白がない幅では行の右端）
+      const sx = innerWidth >= 1100 ? Math.min(r.right + 130, innerWidth - 110) : innerWidth - 70;
+      screenToWorld(sx, r.top + r.height / 2, z, slotPos);
+      home.lerp(slotPos, k);
+      scale = THREE.MathUtils.lerp(base, innerWidth >= 1100 ? 1.5 : 0.7, k);
+    } else if (b.slot) {
+      const r = b.slot.getBoundingClientRect();
+      const cy = r.top + r.height / 2;
+      // 枠の中心が画面中央から ±35% 以内なら枠に留まり、±80% までに徐々に戻る
+      const d = Math.abs(cy - innerHeight / 2) / innerHeight;
+      const goal = smooth(THREE.MathUtils.clamp((0.8 - d) / 0.45, 0, 1));
+      // 急に飛び去らないよう、時間方向にもなめらかに追従させる
+      b.slotK = (b.slotK ?? 0) + (goal - (b.slotK ?? 0)) * Math.min(1, dt * 5);
+      k = b.slotK;
+      if (k > 0.001) {
+        const z = 2;
+        screenToWorld(r.left + r.width / 2, cy, z, slotPos);
+        const target = (r.width / innerHeight) * viewHeightAt(z) * 0.62;
+        home.lerp(slotPos, k);
+        scale = THREE.MathUtils.lerp(base, target, k);
+      }
+    }
+    b.mesh.position.copy(home);
+
+    const sp = bug ? 10 : 1;
+    const idleX = b.rot.x + t * b.spin * sp;
+    const idleY = b.rot.y + t * b.spin * 0.8 * sp;
+    // 代表作は枠に入ると正面寄りの角度でゆっくり回る
+    const showX = -0.42 + mouse.y * 0.4;
+    const showY = 0.7 + Math.sin(t * 0.5) * 0.25 + mouse.x * 0.6;
+    b.mesh.rotation.set(
+      THREE.MathUtils.lerp(idleX, showX, k),
+      THREE.MathUtils.lerp(idleY, showY, k),
+      THREE.MathUtils.lerp(0, 0.08, k),
+    );
+
+    b.hover += ((hovered === b ? 1 : 0) - b.hover) * 0.2;
+    if (b.alive < 1) {
+      if (b.alive === 0) {
+        b.respawn -= dt;
+        if (b.respawn <= 0) b.alive = 0.01;
+      } else {
+        b.alive = Math.min(1, b.alive + dt * 2.5);
+      }
+    }
+    b.mesh.scale.setScalar(scale * b.alive * (1 + b.hover * 0.12));
+    b.mesh.visible = b.alive > 0;
   }
-  mesh.instanceMatrix.needsUpdate = true;
 
   for (let i = shards.length - 1; i >= 0; i--) {
     const s = shards[i];
-    s.userData.v.y -= 12 * dt;
+    s.userData.v.y -= 14 * dt;
     s.position.addScaledVector(s.userData.v, dt);
-    s.rotation.x += dt * 5;
+    s.rotation.x += dt * 6;
     s.userData.life -= dt;
     s.material.opacity = Math.max(0, s.userData.life);
     if (s.userData.life <= 0) {
@@ -178,12 +394,10 @@ function tick() {
   frames++;
   fpsTime += dt;
   if (fpsTime >= 0.5) {
-    fps = Math.round(frames / fpsTime);
+    window.__sceneStats = { fps: Math.round(frames / fpsTime), blocks: blocks.length, broken, shards: shards.length, calls: renderer.info.render.calls };
     frames = 0;
     fpsTime = 0;
-    window.__sceneStats = { fps, blocks: COUNT, broken, shards: shards.length, calls: renderer.info.render.calls };
   }
   requestAnimationFrame(tick);
 }
 tick();
-
