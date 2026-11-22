@@ -24,7 +24,8 @@ const FOV = 40;
 const CAM_Z = 12;
 const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 100);
 camera.position.z = CAM_Z;
-scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b2a0, 2.2));
+const hemi = new THREE.HemisphereLight(0xffffff, 0xb9b2a0, 2.2);
+scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffffff, 1.4);
 sun.position.set(4, 6, 8);
 scene.add(sun);
@@ -78,6 +79,15 @@ const edges = new THREE.EdgesGeometry(geo);
 const edgeMat = new THREE.LineBasicMaterial({ color: INK });
 
 const blocks = [];
+// 夜は全体を暗くし、作品入りの鉱石ブロックだけ光らせて見つけやすくする
+const glowMats = [];
+function setNight(dark) {
+  hemi.intensity = dark ? 0.9 : 2.2;
+  hemi.color.set(dark ? 0x9fb4ff : 0xffffff);
+  sun.intensity = dark ? 0.6 : 1.4;
+  for (const m of glowMats) m.emissiveIntensity = dark ? 0.55 : 0;
+}
+addEventListener('themechange', (e) => setNight(e.detail.dark));
 const featured = [];
 
 function makeBlock(work, i) {
@@ -95,9 +105,11 @@ function makeBlock(work, i) {
       });
       return m;
     });
+    for (const m of mats) { m.emissive = new THREE.Color(0xffffff); m.emissiveIntensity = 0; m.emissiveMap = null; glowMats.push(m); }
     mat = n === 1 ? mats[0] : Array.from({ length: 6 }, (_, f) => mats[f % n]);
   } else if (work) {
-    mat = new THREE.MeshLambertMaterial({ map: oreTexture(work.cat) });
+    mat = new THREE.MeshLambertMaterial({ map: oreTexture(work.cat), emissive: new THREE.Color(oreColor(work.cat)), emissiveIntensity: 0 });
+    glowMats.push(mat);
   } else {
     mat = new THREE.MeshLambertMaterial({ map: stoneTex });
   }
@@ -206,7 +218,7 @@ const mouse = new THREE.Vector2();
 const mouseTarget = new THREE.Vector2();
 const ndc = new THREE.Vector2(9, 9);
 const ray = new THREE.Raycaster();
-const UI = 'a,button,input,label,p,h1,h2,h3,li,td,th,dl,.work-text,.bar,.terminal,.loot,.chara,.courier,.toast,.spec,.inv,.filters';
+const UI = 'a,button,input,label,p,h1,h2,h3,li,td,th,dl,.work-text,.bar,.terminal,.loot,.chara,.dex,.courier,.toast,.spec,.inv,.filters';
 let hovered = null;
 let broken = 0;
 
@@ -284,7 +296,18 @@ addEventListener('summon', (e) => {
 });
 
 let bug = false;
-addEventListener('bugmode', (e) => { bug = e.detail; });
+setNight(document.documentElement.dataset.theme === 'dark');
+
+// sudo rm -rf / : すべてのブロックが一度に砕け、少しずつ戻る
+addEventListener('collapse', () => {
+  stopMining();
+  for (const b of blocks) {
+    if (b.alive !== 1) continue;
+    burst(b.mesh.getWorldPosition(new THREE.Vector3()), new THREE.Color(b.work ? oreColor(b.work.cat) : '#9a968c'));
+    b.alive = 0;
+    b.respawn = 4 + Math.random() * 4;
+  }
+});addEventListener('bugmode', (e) => { bug = e.detail; });
 
 function resize() {
   renderer.setSize(innerWidth, innerHeight, false);

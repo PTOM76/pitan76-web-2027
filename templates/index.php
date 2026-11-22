@@ -33,6 +33,16 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+<script>
+// 表示前にテーマを決め、ちらつきを防ぐ。auto は 6〜18 時を昼、それ以外を夜にする
+(() => {
+  let m = 'auto';
+  try { m = localStorage.getItem('theme') || 'auto'; } catch { /* noop */ }
+  const h = new Date().getHours();
+  document.documentElement.dataset.theme = m === 'auto' ? (h >= 6 && h < 18 ? 'light' : 'dark') : m;
+  document.documentElement.dataset.themeMode = m;
+})();
+</script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
 </head>
 <body>
@@ -53,6 +63,8 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
     <a href="#inventory">技術スタック</a>
     <a href="#log">これまで</a>
   </nav>
+  <button class="bar-dex" type="button" id="dex-open" title="作品図鑑">図鑑</button>
+  <button class="bar-theme" type="button" id="theme" title="昼と夜の切り替え">自動</button>
   <button class="bar-sound" type="button" id="sound" aria-pressed="true" title="効果音">♪ ON</button>
   <button class="bar-term" type="button" data-open-terminal title="ターミナル（` キー）">&gt;_</button>
 </header>
@@ -192,6 +204,16 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
 <div class="courier" id="courier">
   <button type="button" class="courier-btn" id="courier-btn" aria-label="キャラクターを見る"><img src="assets/img/ftp.png" alt="" draggable="false"></button>
   <div class="courier-log"><span id="courier-cmd"></span><i><b id="courier-bar"></b></i></div>
+</div>
+
+<div class="dex" id="dex" hidden>
+  <div class="dex-win inv sk" role="dialog" aria-labelledby="dex-title">
+    <button type="button" class="loot-close" id="dex-close" aria-label="閉じる">×</button>
+    <h2 class="dex-title" id="dex-title">作品図鑑</h2>
+    <p class="dex-count" id="dex-count"></p>
+    <ul class="dex-grid" id="dex-grid"></ul>
+    <p class="dex-hint">背景のブロックを掘って作品を見つけると、ここに登録されます。記録はこのブラウザに保存されます。</p>
+  </div>
 </div>
 
 <div class="chara" id="chara" hidden>

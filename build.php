@@ -267,7 +267,7 @@ if (!$dev) rrmdir($out);   // 開発時は監視中のサーバーと競合し�
 @mkdir("$out/assets/img", 0777, true);
 @mkdir("$out/assets/works", 0777, true);
 foreach (['style.css', 'main.js', 'scene.js'] as $f) copy("$root/assets/$f", "$out/assets/$f");
-$images = ['pitan' => 640, 'ftp' => 480, 'http' => 480];
+$images = ['pitan' => 640, 'ftp' => 480, 'http' => 480, 'smtp' => 480];
 foreach ($images as $name => $width) {
     $src = "$root/assets/img/$name.png";
     $cached = "$cacheDir/$name.png";

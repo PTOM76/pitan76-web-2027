@@ -13,6 +13,8 @@
   --hair-deep: #2f86d8;
   --ear: #ffc2e4;
   --eye: #ffb21e;
+  --on: #2b1710;          /* 明るい差し色の上の文字 */
+  --veil: rgba(220, 236, 250, .85);
   --dot: "DotGothic16", monospace;
   --mono: "JetBrains Mono", ui-monospace, monospace;
   --body: "Zen Kaku Gothic New", system-ui, sans-serif;
@@ -81,7 +83,7 @@ main, .footer { position: relative; z-index: 2; }
 .hero-lead, .hero-facts { max-width: 33em; margin: 0 0 12px; }
 .hero-lead { font-size: clamp(16px, 1.5vw, 19px); font-weight: 700; }
 .hero-facts { color: var(--ink-2); }
-.hero-lead, .hero-facts, .hero-hint { background: rgba(220, 236, 250, .85); }
+.hero-lead, .hero-facts, .hero-hint { background: var(--veil); }
 .hero-hint { margin: 20px 0 0; font-size: 14px; padding-left: 12px; border-left: 4px solid var(--eye); max-width: 33em; }
 .hero-sticker { position: relative; justify-self: center; }
 .sticker {
@@ -312,7 +314,7 @@ body.bug .ht-en { animation: glitch .25s steps(2) infinite; }
 /* 実績の数字 */
 .hero-facts .num { font: 400 1.9em/1 var(--dot); color: var(--ink); margin: 0 .12em; background: linear-gradient(transparent 62%, var(--eye) 62%); }
 .hero-facts .num { white-space: nowrap; }
-.history b, .history span { background: rgba(220, 236, 250, .85); }
+.history b, .history span { background: var(--veil); }
 
 /* ---------- スマホ ---------- */
 @media (max-width: 600px) {
@@ -338,3 +340,50 @@ body.bug .ht-en { animation: glitch .25s steps(2) infinite; }
   .chara-card img { width: 180px; }
 }
 @media (hover: none) { .hint-pc { display: none; } }
+
+/* ---------- 夜（ダークモード） ---------- */
+html[data-theme="dark"] {
+  --sky: #121829; --grid: #1b2440; --panel: #1f1b26; --ink: #efe3d8; --ink-2: #b4a59b;
+  --hair-deep: #8cc6ff; --veil: rgba(18, 24, 41, .85); --shadow: 4px 5px 0 #000;
+  color-scheme: dark;
+}
+html[data-theme="dark"] .loot-card, html[data-theme="dark"] .chara-card { --sk-shadow: 7px 8px 0 #000; }
+html[data-theme="dark"] .toast { background: #2a2433; color: var(--ink); }
+html[data-theme="dark"] .sticker img, html[data-theme="dark"] .courier img, html[data-theme="dark"] .chara-card img { filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff) drop-shadow(5px 6px 0 rgba(0, 0, 0, .8)); }
+html[data-theme="dark"] .courier-log { background: #000; color: var(--ink); }
+html[data-theme="dark"] .chatlog li { background: rgba(0, 0, 0, .6); }
+::selection, .bar nav a:hover, .bar-sound:hover, .bar-theme:hover, .bar-dex:hover, .bar-term, .index a:hover, .block-tip.has-work,
+.loot-get, .loot-links a, .loot-close:hover, .term-bar button { color: var(--on); }
+body { transition: background-color .4s; }
+
+/* ---------- テーマ・図鑑のボタン ---------- */
+.bar-theme, .bar-dex { height: 100%; border: 0; border-left: 2px solid var(--ink); background: var(--panel); cursor: pointer; padding: 0 14px; font: 400 13px var(--dot); white-space: nowrap; }
+.bar-theme:hover { background: var(--hair); }
+.bar-dex:hover { background: var(--eye); }
+.bar-dex { margin-left: auto; }
+@media (max-width: 760px) { .bar-dex { margin-left: auto; } .bar-sound { margin-left: 0; } }
+@media (max-width: 600px) { .bar-theme, .bar-dex { padding: 0 8px; font-size: 12px; } }
+
+/* ---------- 作品図鑑 ---------- */
+.dex { position: fixed; inset: 0; z-index: 44; display: grid; place-items: center; background: rgba(43, 23, 16, .35); padding: 16px; }
+.dex[hidden] { display: none; }
+.dex-win { position: relative; width: min(760px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 18px 18px 14px; animation: pop .35s cubic-bezier(.3, 1.6, .5, 1); }
+.dex-title { margin: 0; font: 400 22px var(--dot); color: #3f3f3f; }
+.dex-count { margin: 0 0 10px; font: 400 14px var(--dot); color: #3f3f3f; }
+.dex-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 4px; }
+.dex-slot { width: 100%; aspect-ratio: 1; padding: 3px; display: grid; place-items: center; cursor: pointer; }
+.dex-slot img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.dex-slot .slot-mark { height: auto; font-size: 18px; }
+.dex-slot.is-unknown { cursor: default; font: 400 22px var(--dot); color: #5b5b5b; text-shadow: none; background: #7a7a7a; }
+.dex-hint { margin: 10px 0 0; font-size: 12px; color: #3f3f3f; line-height: 1.5; }
+
+/* ---------- sudo rm -rf / ---------- */
+body.collapsed main > *, body.collapsed .footer {
+  animation: crumble 1.6s var(--fall-d, 0s) cubic-bezier(.5, 0, .9, .4) forwards;
+}
+@keyframes crumble {
+  0%, 12% { transform: translate(0, 0); }
+  6% { transform: translate(-6px, 2px) rotate(-1deg); }
+  100% { transform: translate(var(--fall-x, 0), 140vh) rotate(var(--fall-r, 20deg)); }
+}
+@media (prefers-reduced-motion: reduce) { body.collapsed main > *, body.collapsed .footer { animation: none; opacity: .2; } }

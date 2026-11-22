@@ -68,15 +68,18 @@
 
   /* ---------- 実績 ---------- */
   const unlocked = new Set();
+  function toast(label, title, icon) {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.innerHTML = `<i>${icon}</i><div><b>${esc(label)}</b>${esc(title)}</div>`;
+    $('#toasts').append(el);
+    setTimeout(() => el.remove(), 4400);
+  }
   function achieve(id, title, icon = '★') {
     if (unlocked.has(id)) return;
     unlocked.add(id);
     sound.achieve();
-    const el = document.createElement('div');
-    el.className = 'toast';
-    el.innerHTML = `<i>${icon}</i><div><b>実績解除</b>${esc(title)}</div>`;
-    $('#toasts').append(el);
-    setTimeout(() => el.remove(), 4400);
+    toast('実績解除', title, icon);
   }
 
   /* ---------- 座標表示（背景の方眼 32px を 1 ブロックとして、ページ上端からの深さ） ---------- */
@@ -209,11 +212,12 @@
 
 
   /* ---------- ブロック破壊 → FTPちゃん / HTTPちゃんが作品を届ける ---------- */
-  // Web 系の作品は HTTPちゃん、それ以外はランダム
   const couriers = {
     ftp: { name: 'FTPプロトコルさん', proto: 'FTP / File Transfer Protocol', desc: 'ファイルの転送を担当する。サーバーへのアップロードやダウンロードで作品を届ける。', img: 'assets/img/ftp.png', start: (f) => `STOR ${f}.dat`, done: '226 Transfer complete' },
     http: { name: 'HTTPプロトコルさん', proto: 'HTTP / Hypertext Transfer Protocol', desc: 'Webページの配送を担当する。リクエストを受け取り、レスポンスとして作品を届ける。見つからないときは 404 を返す。', img: 'assets/img/http.png', start: (f) => `GET /works/${f} HTTP/1.1`, done: 'HTTP/1.1 200 OK' },
+    smtp: { name: 'SMTPプロトコルさん', proto: 'SMTP / Simple Mail Transfer Protocol', desc: 'メールの配送を担当する。宛先を確かめてから、作品をメールに載せて届ける。', img: 'assets/img/smtp.png', start: (f) => `DATA ${f}.eml`, done: '250 OK: queued' },
   };
+  for (const [k, c] of Object.entries(couriers)) c.key = k;
   const courier = $('#courier');
   const courierImg = $('img', courier);
   const ccmd = $('#courier-cmd');
@@ -222,11 +226,13 @@
   let delivering = false;
   let current = couriers.ftp;
   let pending = null;
-  async function deliver(w) {
+  async function deliver(w, kind) {
     if (delivering) { pending = w; return; }
     delivering = true;
     const file = (w.id || 'item').replace(/[^a-z0-9_-]/gi, '-');
-    const c = couriers[w.cat === 'Web' || w.cat === 'Extension' || Math.random() < 0.5 ? 'http' : 'ftp'];
+    // Web 系の作品は HTTPプロトコルさん、それ以外は 3 人からランダム
+    const pick = ['ftp', 'http', 'smtp'][(Math.random() * 3) | 0];
+    const c = couriers[kind || (w.cat === 'Web' || w.cat === 'Extension' ? 'http' : pick)];
     courierImg.src = c.img;
     current = c;
     ccmd.textContent = c.start(file);
@@ -262,7 +268,7 @@
     $('#chara-desc').textContent = current.desc;
     chara.hidden = false;
     sound.blip();
-    achieve('chara-' + (current === couriers.http ? 'http' : 'ftp'), current.name + 'に会った', '✉');
+    achieve('chara-' + current.key, current.name + 'に会った', '✉');
   });
   $('#chara-close').addEventListener('click', () => { chara.hidden = true; });
   chara.addEventListener('click', (e) => { if (e.target === chara) chara.hidden = true; });
@@ -304,18 +310,99 @@
   $('#loot-close').addEventListener('click', () => { loot.hidden = true; });
   addEventListener('keydown', (e) => { if (e.key === 'Escape') loot.hidden = true; });
 
+  /* ---------- 作品図鑑（掘り当てた作品をブラウザに記録する） ---------- */
   const found = new Set();
+  try { for (const id of JSON.parse(localStorage.getItem('dex') || '[]')) found.add(id); } catch { /* noop */ }
+  const dex = $('#dex');
+  const dexGrid = $('#dex-grid');
+  const total = SITE.works.length;
+  function renderDex() {
+    const n = SITE.works.filter((w) => found.has(w.id)).length;
+    $('#dex-count').textContent = `${total}件中${n}件発見`;
+    dexGrid.replaceChildren(...SITE.works.map((w) => {
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'slot dex-slot';
+      if (found.has(w.id)) {
+        b.title = w.name;
+        b.setAttribute('aria-label', w.name);
+        if (w.thumb) {
+          const img = document.createElement('img');
+          img.src = w.thumb + '.jpg'; img.alt = ''; img.loading = 'lazy'; img.draggable = false;
+          b.append(img);
+        } else {
+          const s = document.createElement('span');
+          s.className = 'slot-mark';
+          s.textContent = w.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 2) || '◆';
+          b.append(s);
+        }
+        b.addEventListener('click', () => showLoot(w));
+      } else {
+        b.classList.add('is-unknown');
+        b.textContent = '?';
+        b.setAttribute('aria-label', '未発見');
+        b.disabled = true;
+      }
+      li.append(b);
+      return li;
+    }));
+  }
+  function openDex() {
+    renderDex();
+    dex.hidden = false;
+    achieve('dex', '図鑑を開いた', '▤');
+  }
+  $('#dex-open').addEventListener('click', openDex);
+  $('#dex-close').addEventListener('click', () => { dex.hidden = true; });
+  dex.addEventListener('click', (e) => { if (e.target === dex) dex.hidden = true; });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape' && loot.hidden && chara.hidden) dex.hidden = true; });
+  function register(w) {
+    if (found.has(w.id)) return;
+    found.add(w.id);
+    try { localStorage.setItem('dex', JSON.stringify([...found])); } catch { /* noop */ }
+    toast('図鑑に登録', w.name, '▤');
+    if (!dex.hidden) renderDex();
+    if (found.size === 10) achieve('found10', '作品を10個発掘した', '◎');
+    if (found.size === 50) achieve('found50', '作品を50個発掘した', '◆');
+    if (SITE.works.every((x) => found.has(x.id))) achieve('foundAll', '図鑑をすべて埋めた', '★');
+  }
+
   addEventListener('block-break', (e) => {
     const { count, work } = e.detail;
     sound.breaks();
     if (work) {
-      found.add(work.id);
+      register(work);
       deliver(work);
     }
     if (count === 1) achieve('mine1', 'はじめてのブロック破壊', '⛏');
     if (count === 20) achieve('mine20', 'ブロックを20個壊した', '◆');
-    if (found.size === 10) achieve('found10', '作品を10個発掘した', '◎');
   });
+
+  /* ---------- 昼と夜（自動 / 昼 / 夜） ---------- */
+  const themeBtn = $('#theme');
+  const THEME_LABEL = { auto: '◐ 自動', light: '☀ 昼', dark: '☾ 夜' };
+  let themeMode = document.documentElement.dataset.themeMode || 'auto';
+  function applyTheme() {
+    const h = new Date().getHours();
+    const dark = themeMode === 'auto' ? !(h >= 6 && h < 18) : themeMode === 'dark';
+    const root = document.documentElement;
+    const changed = root.dataset.theme !== (dark ? 'dark' : 'light');
+    root.dataset.theme = dark ? 'dark' : 'light';
+    themeBtn.textContent = THEME_LABEL[themeMode];
+    themeBtn.title = `昼と夜の切り替え（今: ${THEME_LABEL[themeMode].slice(2)}）`;
+    $('meta[name="theme-color"]').content = dark ? '#121829' : '#dcecfa';
+    if (changed) dispatchEvent(new CustomEvent('themechange', { detail: { dark } }));
+  }
+  themeBtn.addEventListener('click', () => {
+    themeMode = { auto: 'light', light: 'dark', dark: 'auto' }[themeMode];
+    try { localStorage.setItem('theme', themeMode); } catch { /* noop */ }
+    sound.blip();
+    applyTheme();
+    if (themeMode === 'dark') achieve('night', '夜にした', '☾');
+  });
+  setInterval(applyTheme, 60000);   // 自動のとき、時刻が変われば切り替える
+  applyTheme();
 
   /* ---------- ブロックのホバー表示 ---------- */
   const tip = $('#block-tip');
@@ -370,7 +457,7 @@
     out.scrollTop = out.scrollHeight;
   };
   const commands = {
-    help: () => 'help, whoami, ls, open <n>, find <語>, skills, curl <url>, goto <section>, bug, sudo, clear, exit'.replace(/</g, '&lt;'),
+    help: () => 'help, whoami, ls, open <n>, find <語>, skills, curl works/<作品>, ftp get <作品>, smtp send <作品>, dex, theme <auto|light|dark>, goto <section>, bug, sudo, clear, exit'.replace(/</g, '&lt;'),
     whoami: () => 'pitan — Bug-Creator。MODやWebなどを開発しています。',
     ls: () => SITE.projects.map((p, i) => `[${i + 1}] ${esc(p.name)} — ${esc(p.summary)}`).join('\n'),
     open: (n) => {
@@ -387,8 +474,16 @@
     },
     skills: () => SITE.skills.map((g) => `${g.name.padEnd(15)} ${g.items.join(', ')}`).join('\n'),
     curl: (u) => {
+      const m = u.match(/(?:^|\/)works\/(.+)$/);
+      if (m) {
+        const w = findWork(m[1]);
+        if (!w) return 'HTTP/1.1 404 Not Found\nX-Served-By: HTTPプロトコルさん';
+        term.hidden = true;
+        showLoot(w);
+        return `HTTP/1.1 200 OK\nContent-Type: application/x-pitan-work\nX-Served-By: HTTPプロトコルさん\n\n${esc(w.name)}`;
+      }
       const r = !u ? '400 Bad Request' : /pitan/i.test(u) ? '200 OK' : '418 I\'m a teapot';
-      return `HTTP/1.1 ${r}\nX-Served-By: HTTP-chan`;
+      return `HTTP/1.1 ${r}\nX-Served-By: HTTPプロトコルさん`;
     },
     goto: (s) => {
       const el = document.getElementById(s);
@@ -398,13 +493,77 @@
       return '';
     },
     bug: () => (bugMode() ? 'bug mode: ON' : 'bug mode: OFF'),
-    sudo: () => { achieve('sudo', 'sudo を試みた', '#'); return '<span class="err">visitor is not in the sudoers file. This incident will be reported.</span>'; },
+    sudo: (a) => {
+      if (/^rm\s+-(rf|fr)\s+\/\*?$/.test(a)) {
+        term.hidden = true;
+        collapse();
+        achieve('rmrf', 'sudo rm -rf / を実行した', '☠');
+        return '<span class="err">removing / …</span>';
+      }
+      achieve('sudo', 'sudo を試みた', '#');
+      return '<span class="err">visitor is not in the sudoers file. This incident will be reported.</span>';
+    },
+    smtp: (a) => {
+      const m = a.match(/^send\s+(.+)$/);
+      if (!m) return '220 SMTPプロトコルさん ESMTP ready.\nusage: smtp send &lt;作品名&gt;';
+      const w = findWork(m[1]);
+      if (!w) return `550 ${esc(m[1])}: Mailbox unavailable`;
+      term.hidden = true;
+      deliver(w, 'smtp');
+      return '250 OK\n354 Start mail input; end with &lt;CRLF&gt;.&lt;CRLF&gt;';
+    },
+    dex: () => { term.hidden = true; openDex(); return ''; },
+    theme: (a) => {
+      if (!['auto', 'light', 'dark'].includes(a)) return `theme: ${themeMode}\nusage: theme auto|light|dark`;
+      themeMode = a;
+      try { localStorage.setItem('theme', a); } catch { /* noop */ }
+      applyTheme();
+      return `theme: ${a}`;
+    },
     rm: (a) => (a.includes('-rf') ? '<span class="err">やめてください。</span>' : 'rm: missing operand'),
-    ftp: () => '220 FTP-chan ready.\n530 Login incorrect.',
+    ftp: (a) => {
+      const m = a.match(/^get\s+(.+)$/);
+      if (!m) return '220 FTPプロトコルさん ready.\nusage: ftp get &lt;作品名&gt;';
+      const w = findWork(m[1]);
+      if (!w) return `550 ${esc(m[1])}: No such file or directory`;
+      term.hidden = true;
+      deliver(w, 'ftp');
+      return `200 PORT command successful.\n150 Opening BINARY mode data connection for ${esc(w.id)}`;
+    },
     pitan: () => 'にゃ。',
     clear: () => { out.innerHTML = ''; return ''; },
     exit: () => { term.hidden = true; return ''; },
   };
+  // 作品を ID か名前の一部で探す
+  function findWork(s) {
+    const k = decodeURIComponent(s).trim().toLowerCase();
+    return SITE.works.find((w) => w.id.toLowerCase() === k)
+      || SITE.works.find((w) => w.name.toLowerCase() === k)
+      || SITE.works.find((w) => w.name.toLowerCase().includes(k) || w.id.toLowerCase().includes(k));
+  }
+
+  // sudo rm -rf / : ページの部品が崩れ落ち、しばらくして元に戻る
+  let collapsing = false;
+  function collapse() {
+    if (collapsing) return;
+    collapsing = true;
+    sound.breaks();
+    dispatchEvent(new CustomEvent('collapse'));
+    const parts = $$('main > *, .footer');
+    parts.forEach((el) => {
+      el.style.setProperty('--fall-r', ((Math.random() - 0.5) * 70).toFixed(1) + 'deg');
+      el.style.setProperty('--fall-x', ((Math.random() - 0.5) * 30).toFixed(1) + 'vw');
+      el.style.setProperty('--fall-d', (Math.random() * 0.5).toFixed(2) + 's');
+    });
+    document.body.classList.add('collapsed');
+    setTimeout(() => {
+      document.body.classList.remove('collapsed');
+      parts.forEach((el) => ['--fall-r', '--fall-x', '--fall-d'].forEach((p) => el.style.removeProperty(p)));
+      collapsing = false;
+      toast('復旧', 'バックアップから復元しました', '↺');
+    }, 4200);
+  }
+
   function openTerm() {
     term.hidden = false;
     if (!out.childElementCount) print('pitan shell — "help" でコマンド一覧');
@@ -433,7 +592,7 @@
   });
 
   addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { term.hidden = true; loot.hidden = true; return; }
+    if (e.key === 'Escape') { term.hidden = true; return; }
     if (e.target.closest('input, textarea')) return;
     if (e.key === '`') { e.preventDefault(); openTerm(); return; }
     kpos = e.key === konami[kpos] ? kpos + 1 : (e.key === konami[0] ? 1 : 0);
