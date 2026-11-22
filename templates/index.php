@@ -148,7 +148,7 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
             <?php foreach ($g['items'] as $it): $ic = $icons[$it] ?? null; ?>
               <li class="slot" tabindex="0">
                 <?php if ($ic): ?>
-                  <span class="slot-icons<?= count($ic) > 1 ? ' is-pair' : '' ?>" aria-hidden="true"><?php foreach ($ic as $file): ?><img src="assets/icons/<?= h($file) ?>" alt="" width="34" height="34" loading="lazy" draggable="false"><?php endforeach; ?></span>
+                  <span class="slot-icons<?= count($ic) > 1 ? ' is-pair' : '' ?>" aria-hidden="true"><?php foreach ($ic as $file): ?><img src="assets/icons/<?= h($file) ?>" alt="" width="34" height="34" loading="lazy" draggable="false"<?= str_ends_with($file, '.png') ? ' class="is-pixel"' : '' ?>><?php endforeach; ?></span>
                 <?php else: ?>
                   <span class="slot-mark" aria-hidden="true"><?= h(mb_substr(preg_replace('/[^A-Za-z0-9#]/', '', $it), 0, 2)) ?></span>
                 <?php endif; ?>

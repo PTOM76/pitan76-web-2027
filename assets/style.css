@@ -202,6 +202,7 @@ body.gl .work-slot img { visibility: hidden; }
 .slot-icons { display: flex; justify-content: center; align-items: center; height: 38px; }
 .slot-icons img { width: 34px; height: 34px; filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, .35)); }
 .slot-icons.is-pair img { width: 28px; height: 28px; }
+.slot-icons img.is-pixel { image-rendering: pixelated; }
 .slot-icons.is-pair img + img { margin-left: -6px; transform: translateY(6px); }
 .slot:hover .slot-icons img, .slot:focus .slot-icons img { transform: scale(1.12); }
 .slot:hover .slot-icons.is-pair img + img { transform: translateY(6px) scale(1.12); }

@@ -140,6 +140,7 @@ function block_icon(string $src, string $dst, int $size): void {
 /**
  * 技術スタックの名前 => ロゴのリスト。
  * 通常は Devicon のカラーロゴ（"java/java-original" の形）。"si:slug:色" は Simple Icons の単色ロゴを指定色で塗る。
+ * "https://..." は画像の URL をそのまま取得する。
  * ここにない名前はロゴなし（文字のマークで表示）。
  */
 const DEVICON = 'https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons';
@@ -154,6 +155,8 @@ const SKILL_ICONS = [
     'Cloudflare' => ['cloudflare/cloudflare-original'], 'Workers' => ['cloudflareworkers/cloudflareworkers-original'],
     'Docker' => ['docker/docker-original'], 'Linux' => ['linux/linux-original'],
     'GitHub Actions' => ['githubactions/githubactions-original'], 'Rust / WASM' => ['rust/rust-original', 'wasm/wasm-original'],
+    'Fabric' => ['https://www.pitan76.net/image/fabric.png'], 'Forge' => ['https://www.pitan76.net/image/forge.png'],
+    'NeoForge' => ['https://www.pitan76.net/image/neoforge.png'], 'PukiWiki' => ['https://pukiwiki.sourceforge.io/image/pukiwiki.png'],
 ];
 
 /**
@@ -167,7 +170,10 @@ function skill_icons(array $skills, string $cacheDir): array {
     foreach ($skills as $g) {
         foreach ($g['items'] as $name) {
             foreach (SKILL_ICONS[$name] ?? [] as $ref) {
-                if (str_starts_with($ref, 'si:')) {
+                if (str_starts_with($ref, 'https://')) {
+                    $file = 'url-' . basename(parse_url($ref, PHP_URL_PATH));
+                    if (!is_file("$dir/$file") && ($raw = http_get($ref)) && @imagecreatefromstring($raw)) file_put_contents("$dir/$file", $raw);
+                } elseif (str_starts_with($ref, 'si:')) {
                     [, $slug, $hex] = explode(':', $ref);
                     $file = "si-$slug.svg";
                     if (!is_file("$dir/$file") && ($raw = http_get(SIMPLE_ICONS . "/$slug.svg"))) {
