@@ -14,7 +14,7 @@ function h(mixed $v): string {
 }
 
 /** 外周から白背景を塗りつぶして透過 PNG を作る（内側の白は残す）。 */
-function cutout(string $src, string $dst, int $maxWidth): void {
+function cutout(string $src, string $dst, int $maxWidth, float $sides = 0.6): void {
     $img = imagecreatefrompng($src);
     $w = imagesx($img);
     $hgt = imagesy($img);
@@ -25,7 +25,7 @@ function cutout(string $src, string $dst, int $maxWidth): void {
     $mask = array_fill(0, $w * $hgt, 0);
     $stack = [];
     for ($x = 0; $x < $w; $x++) $stack[] = $x;                      // 上辺
-    for ($y = 0; $y < (int)($hgt * 0.6); $y++) {                   // 左右の上 60%
+    for ($y = 0; $y < (int)($hgt * $sides); $y++) {                  // 左右の上側（割合は $sides）
         $stack[] = $y * $w;
         $stack[] = $y * $w + $w - 1;
     }
@@ -124,8 +124,8 @@ mkdir("$out/assets/img", 0777, true);
 foreach (['style.css', 'main.js', 'scene.js'] as $f) copy("$root/assets/$f", "$out/assets/$f");
 $img = "$root/assets/img";
 $images = [
-    'pitan-cut.png' => cached("$img/pitan.png", 'pitan-cut.png', fn($s, $d) => cutout($s, $d, 640)),
-    'ftp.png' => cached("$img/ftp.png", 'ftp.png', fn($s, $d) => cutout($s, $d, 480)),
+    'pitan-cut.png' => cached("$img/pitan.png", 'pitan-cut.png', fn($s, $d) => cutout($s, $d, 640, 1.0)),
+    'ftp.png' => cached("$img/ftp.png", 'ftp.png', fn($s, $d) => cutout($s, $d, 480, 1.0)),
     'http.png' => cached("$img/http.png", 'http.png', fn($s, $d) => cutout($s, $d, 480)),
     'pitan.png' => cached("$img/pitan.png", 'pitan.png', fn($s, $d) => resized($s, $d, 480)),
     'favicon.png' => cached("$img/pitan.png", 'favicon.png', fn($s, $d) => resized($s, $d, 64)),
