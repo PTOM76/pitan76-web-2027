@@ -21,14 +21,9 @@
 <div class="loot" id="loot" hidden>
   <div class="loot-card sk" id="loot-card" role="dialog" aria-label="掘り当てた作品">
     <button type="button" class="loot-close" id="loot-close" aria-label="閉じる">×</button>
+    <!-- 中身は main.js が works/ID.card.html（PHP で生成）を読み込んで入れる -->
     <div class="loot-body" id="loot-body"></div>
   </div>
-</div>
-
-<!-- 掘り当てたときのカードの中身。作品ごとに PHP で作っておき、main.js が複製して表示する -->
-<div hidden id="loot-cards">
-  <?php foreach ($items as $w): ?><template data-id="<?= h($w['id']) ?>"><?= partial('work-card', ['w' => $w, 'loot' => true]) ?></template>
-  <?php endforeach; ?>
 </div>
 
 <div class="terminal" id="terminal" hidden>

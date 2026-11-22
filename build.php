@@ -126,9 +126,9 @@ $pages['404.html'] = render('404', View::$shared);
 foreach ($pages as $path => $html) write_file("$out/$path", $html);
 write_file("$out/.nojekyll", '');
 if ($url !== '') {
-    $locs = array_map(static fn($path) => "  <url><loc>" . h("$url/" . ($path === 'index.html' ? '' : $path)) . "</loc></url>", array_keys(array_diff_key($pages, ['404.html' => 1])));
+    $locs = array_map(static fn($path) => "  <url><loc>" . h("$url/" . ($path === 'index.html' ? '' : $path)) . "</loc></url>", array_filter(array_keys($pages), static fn($path) => $path !== '404.html' && !str_ends_with($path, '.card.html')));
     write_file("$out/sitemap.xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n" . implode("\n", $locs) . "\n</urlset>\n");
     write_file("$out/robots.txt", "User-agent: *\nAllow: /\nSitemap: $url/sitemap.xml\n");
 }
 
-printf("Generated %d pages: %d projects, %d works, %d thumbnails.\n", count($pages), count($projects), count($items), count($thumbs));
+printf("Generated %d files: %d projects, %d works, %d thumbnails.\n", count($pages), count($projects), count($items), count($thumbs));

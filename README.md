@@ -57,7 +57,7 @@ GitHub Actionsでは `PITAN_BASE` と `PITAN_URL` をGitHub Pagesの設定から
 | `scripts/check.mjs` | 構文チェック |
 | `scripts/dev.mjs` | 開発サーバー |
 
-作品ごとの詳細ページは `dist/works/作品ID.html` に出力する。作品一覧はビルド時に [works-info](https://github.com/PTOM76/works-info) の `list.json` から取得し、作品画像をブロック用とカード用のサムネイルに変換して `dist/assets/works/` に出力する。
+作品ごとの詳細ページは `dist/works/作品ID.html` に出力する。ブロックを掘り当てたときのカードも同じ部品（`templates/partials/work-card.php`）から `dist/works/作品ID.card.html` に出力し、表示するときに1件ずつ読み込む。作品一覧はビルド時に [works-info](https://github.com/PTOM76/works-info) の `list.json` から取得し、作品画像をブロック用とカード用のサムネイルに変換して `dist/assets/works/` に出力する。
 
 ## 隠し要素
 

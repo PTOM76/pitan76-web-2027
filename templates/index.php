@@ -37,7 +37,7 @@
     'projects' => array_map(static fn($p) => ['name' => $p['name'], 'url' => $p['url']], $projects),
     'characters' => $characters,
     'term' => terminal_text($site, $projects),
-    'works' => array_map(static fn($w) => array_intersect_key($w, array_flip(['id', 'page', 'name', 'desc', 'cat', 'tags', 'thumb', 'faces', 'featured', 'url'])), $items),
+    'works' => array_map(static fn($w) => array_intersect_key($w, array_flip(['id', 'page', 'card', 'name', 'desc', 'cat', 'tags', 'thumb', 'faces', 'featured', 'url'])), $items),
 ]) ?>;</script>
 <script type="module" src="<?= h(asset('assets/scene.js')) ?>"></script>
 <script src="<?= h(asset('assets/main.js')) ?>" defer></script>
