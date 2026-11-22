@@ -10,7 +10,7 @@ declare(strict_types=1);
 
 const ROOT = __DIR__;
 const TEMPLATE_DIR = ROOT . '/templates';
-foreach (['util', 'image', 'works', 'icons', 'validate', 'render'] as $lib) require ROOT . "/src/$lib.php";
+foreach (['util', 'image', 'works', 'icons', 'validate', 'render', 'terminal'] as $lib) require ROOT . "/src/$lib.php";
 
 $out = ROOT . '/dist';
 $cache = ROOT . '/.cache';
@@ -114,6 +114,11 @@ $pages = [
 View::$shared['p'] = '../';
 foreach ($items as $w) {
     $pages[$w['page']] = render('work', ['w' => $w] + View::$shared);
+}
+// 掘り当てたときのカード。トップページに読み込んで表示するため、パスはトップ基準
+View::$shared['p'] = '';
+foreach ($items as $w) {
+    $pages[$w['card']] = partial('work-card', ['w' => $w, 'loot' => true]);
 }
 View::$shared['p'] = $base;
 $pages['404.html'] = render('404', View::$shared);

@@ -234,6 +234,7 @@
     const c = couriers[kind || courierFor(w)];
     courierImg.src = c.img;
     current = c;
+    loadCard(w).catch(() => {});   // 配達の演出の間に読み込んでおく
     ccmd.textContent = c.start(file);
     cbar.style.transition = 'none';
     cbar.style.width = '0';
@@ -244,7 +245,7 @@
     await wait(reduced ? 0 : 750);
     ccmd.textContent = c.done;
     sound.transfer();
-    showLoot(w);
+    await showLoot(w);
     // カードを閉じるまで（最長 8 秒）その場に残る
     const t0 = performance.now();
     while ((!loot.hidden && performance.now() - t0 < 8000) || !chara.hidden) await wait(200);
@@ -273,40 +274,30 @@
   chara.addEventListener('click', (e) => { if (e.target === chara) chara.hidden = true; });
   addEventListener('keydown', (e) => { if (e.key === 'Escape') chara.hidden = true; });
 
-  function showLoot(w) {
-    const img = $('#loot-img');
-    // 画像のない作品で前の作品の画像が残らないよう、毎回 src を消す
-    img.removeAttribute('src');
-    img.hidden = !w.thumb;
-    if (w.thumb) img.src = w.thumb + '-w.jpg';
-    $('#loot-name').textContent = w.name;
-    $('#loot-meta').textContent = [w.cat, w.year].filter(Boolean).join(' · ');
-    $('#loot-desc').textContent = w.desc;
-    const note = $('#loot-note');
-    note.hidden = !w.note;
-    $('p', note).textContent = w.note || '';
-    // 詳細。値のない項目は出さない
-    const fmt = (d) => d ? d.replace(/\//g, '-') : '';
-    const spec = [
-      ['公開', fmt(w.created)], ['更新', w.updated ? fmt(w.date) : ''], ['バージョン', w.version],
-      ['対応 MC', w.mc], ['ライセンス', w.license],
-    ].filter(([, v]) => v);
-    $('#loot-spec').replaceChildren(...spec.flatMap(([k, v]) => {
-      const dt = document.createElement('dt'); dt.textContent = k;
-      const dd = document.createElement('dd'); dd.textContent = v;
-      return [dt, dd];
-    }));
-    $('#loot-tags').textContent = (w.tags || []).map((x) => '#' + x).join(' ');
-    const links = w.links?.length ? w.links : [{ label: '開く', url: w.url || SITE.github }];
-    $('#loot-links').replaceChildren(...links.map((l) => {
+  // カードの中身は PHP が作品ごとに works/ID.card.html として出力している。必要になった 1 件だけ読み込む
+  const cards = new Map();
+  function loadCard(w) {
+    if (!cards.has(w.id)) {
+      const req = fetch(w.card).then((r) => (r.ok ? r.text() : Promise.reject(r.status)));
+      req.catch(() => cards.delete(w.id));   // 失敗したら次回また読み込む
+      cards.set(w.id, req);
+    }
+    return cards.get(w.id);
+  }
+  async function showLoot(w) {
+    let html;
+    try {
+      html = await loadCard(w);
+    } catch {
+      // 読み込めなければ詳細ページへの案内だけ出す
       const a = document.createElement('a');
-      a.href = l.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label;
-      return a;
-    }));
-    // サイト内の詳細ページ（PHP で作品ごとに生成している）
-    const more = document.createElement('a');
-    more.href = w.page; more.className = 'loot-page'; more.textContent = '詳細ページ';
-    $('#loot-links').append(more);
+      a.href = w.page; a.textContent = `${w.name} の詳細ページを開く`;
+      $('#loot-body').replaceChildren(a);
+      loot.hidden = false;
+      return;
+    }
+    // 中身はビルド時に PHP がエスケープ済みの、同じサイト内の HTML
+    $('#loot-body').innerHTML = html;
     loot.hidden = false;
   }
   loot.addEventListener('click', (e) => { if (e.target === loot) loot.hidden = true; });
@@ -317,40 +308,28 @@
   const found = new Set();
   try { for (const id of JSON.parse(localStorage.getItem('dex') || '[]')) found.add(id); } catch { /* noop */ }
   const dex = $('#dex');
-  const dexGrid = $('#dex-grid');
-  const total = SITE.works.length;
+  // マス目は PHP が全作品分を出力している。見つけた作品のマスを有効にし、画像を読み込む
+  const dexSlots = new Map($$('.dex-slot').map((b) => [b.dataset.id, b]));
+  const byId = new Map(SITE.works.map((w) => [w.id, w]));
   function renderDex() {
-    const n = SITE.works.filter((w) => found.has(w.id)).length;
-    $('#dex-count').textContent = `${total}件中${n}件発見`;
-    dexGrid.replaceChildren(...SITE.works.map((w) => {
-      const li = document.createElement('li');
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'slot dex-slot';
-      if (found.has(w.id)) {
-        b.title = w.name;
-        b.setAttribute('aria-label', w.name);
-        if (w.thumb) {
-          const img = document.createElement('img');
-          img.src = w.thumb + '.jpg'; img.alt = ''; img.loading = 'lazy'; img.draggable = false;
-          b.append(img);
-        } else {
-          const s = document.createElement('span');
-          s.className = 'slot-mark';
-          s.textContent = w.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 2) || '◆';
-          b.append(s);
-        }
-        b.addEventListener('click', () => showLoot(w));
-      } else {
-        b.classList.add('is-unknown');
-        b.textContent = '?';
-        b.setAttribute('aria-label', '未発見');
-        b.disabled = true;
-      }
-      li.append(b);
-      return li;
-    }));
+    let n = 0;
+    for (const [id, b] of dexSlots) {
+      if (!found.has(id)) continue;
+      n++;
+      if (b.classList.contains('is-found')) continue;
+      b.classList.add('is-found');
+      b.disabled = false;
+      b.title = b.dataset.name;
+      b.setAttribute('aria-label', b.dataset.name);
+      const img = $('img[data-src]', b);
+      if (img) img.src = img.dataset.src;
+    }
+    $('#dex-found').textContent = n;
   }
+  $('#dex-grid').addEventListener('click', (e) => {
+    const b = e.target.closest('.dex-slot.is-found');
+    if (b && byId.has(b.dataset.id)) showLoot(byId.get(b.dataset.id));
+  });
   function openDex() {
     renderDex();
     dex.hidden = false;
@@ -460,9 +439,10 @@
     out.scrollTop = out.scrollHeight;
   };
   const commands = {
-    help: () => 'help, whoami, ls, open <n>, find <語>, skills, curl works/<作品>, ftp get <作品>, smtp send <作品>, dex, theme <auto|light|dark>, goto <section>, bug, sudo, clear, exit'.replace(/</g, '&lt;'),
-    whoami: () => 'pitan — Bug-Creator。MODやWebなどを開発しています。',
-    ls: () => SITE.projects.map((p, i) => `[${i + 1}] ${esc(p.name)} — ${esc(p.summary)}`).join('\n'),
+    // 固定の出力は PHP の terminal_text() が作る
+    help: () => SITE.term.help,
+    whoami: () => SITE.term.whoami,
+    ls: () => SITE.term.ls,
     open: (n) => {
       const p = SITE.projects[Number(n) - 1];
       if (!p) return `<span class="err">usage: open 1-${SITE.projects.length}</span>`;
@@ -475,7 +455,7 @@
       const hits = SITE.works.filter((w) => (w.name + ' ' + w.desc + ' ' + w.tags.join(' ')).toLowerCase().includes(k));
       return hits.length ? hits.slice(0, 12).map((w) => `${esc(w.name.padEnd(28))} ${esc(w.cat)}`).join('\n') + (hits.length > 12 ? `\n… ほか ${hits.length - 12} 件` : '') : '0 件';
     },
-    skills: () => SITE.skills.map((g) => `${g.name.padEnd(15)} ${g.items.join(', ')}`).join('\n'),
+    skills: () => SITE.term.skills,
     curl: (u) => {
       const m = u.match(/(?:^|\/)works\/(.+)$/);
       if (m) {

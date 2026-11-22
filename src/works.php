@@ -77,6 +77,7 @@ function build_items(array $works, array $thumbs, array $notes, array $config, a
         $items[] = [
             'id' => $id,
             'page' => 'works/' . slug($id) . '.html',
+            'card' => 'works/' . slug($id) . '.card.html',
             'name' => $w['name'],
             'desc' => plain($w['description'] ?? ''),
             'cat' => $config['categories'][$w['category'] ?? 'misc'] ?? 'Misc',

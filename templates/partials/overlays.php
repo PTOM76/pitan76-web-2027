@@ -1,18 +1,10 @@
-<?php /** トップページの重ねて出す部品（配達キャラ、図鑑、紹介カード、掘り当てたカード、ターミナルなど）。中身は main.js が入れる。 */ ?>
+<?php /** トップページの重ねて出す部品（配達キャラ、図鑑、紹介カード、掘り当てたカード、ターミナルなど）。 @var array $items */ ?>
 <div class="courier" id="courier">
   <button type="button" class="courier-btn" id="courier-btn" aria-label="キャラクターを見る"><img src="assets/img/ftp.png" alt="" draggable="false"></button>
   <div class="courier-log"><span id="courier-cmd"></span><i><b id="courier-bar"></b></i></div>
 </div>
 
-<div class="dex" id="dex" hidden>
-  <div class="dex-win inv sk" role="dialog" aria-labelledby="dex-title">
-    <button type="button" class="loot-close" id="dex-close" aria-label="閉じる">×</button>
-    <h2 class="dex-title" id="dex-title">作品図鑑</h2>
-    <p class="dex-count" id="dex-count"></p>
-    <ul class="dex-grid" id="dex-grid"></ul>
-    <p class="dex-hint">背景のブロックを掘って作品を見つけると、ここに登録されます。記録はこのブラウザに保存されます。</p>
-  </div>
-</div>
+<?= partial('dex', ['items' => $items]) ?>
 
 <div class="chara" id="chara" hidden>
   <div class="chara-card sk" role="dialog" aria-labelledby="chara-name">
@@ -27,18 +19,16 @@
 </div>
 
 <div class="loot" id="loot" hidden>
-  <div class="loot-card sk" id="loot-card" role="dialog" aria-labelledby="loot-name">
+  <div class="loot-card sk" id="loot-card" role="dialog" aria-label="掘り当てた作品">
     <button type="button" class="loot-close" id="loot-close" aria-label="閉じる">×</button>
-    <img id="loot-img" alt="">
-    <span class="loot-get">掘り当てた！</span>
-    <b id="loot-name"></b>
-    <small id="loot-meta"></small>
-    <p id="loot-desc"></p>
-    <div class="loot-note" id="loot-note" hidden><span>つくった理由</span><p></p></div>
-    <dl class="loot-spec" id="loot-spec"></dl>
-    <p class="loot-tags" id="loot-tags"></p>
-    <p class="loot-links" id="loot-links"></p>
+    <div class="loot-body" id="loot-body"></div>
   </div>
+</div>
+
+<!-- 掘り当てたときのカードの中身。作品ごとに PHP で作っておき、main.js が複製して表示する -->
+<div hidden id="loot-cards">
+  <?php foreach ($items as $w): ?><template data-id="<?= h($w['id']) ?>"><?= partial('work-card', ['w' => $w, 'loot' => true]) ?></template>
+  <?php endforeach; ?>
 </div>
 
 <div class="terminal" id="terminal" hidden>

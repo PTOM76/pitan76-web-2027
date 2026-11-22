@@ -30,14 +30,14 @@
 </main>
 
 <?= partial('footer', ['full' => true]) ?>
-<?= partial('overlays') ?>
+<?= partial('overlays', ['items' => $items]) ?>
 
 <script>window.SITE = <?= js_json([
     'github' => $site['links']['github'],
-    'projects' => array_map(static fn($p) => ['name' => $p['name'], 'url' => $p['url'], 'summary' => $p['summary']], $projects),
-    'skills' => $site['skills'],
+    'projects' => array_map(static fn($p) => ['name' => $p['name'], 'url' => $p['url']], $projects),
     'characters' => $characters,
-    'works' => $items,
+    'term' => terminal_text($site, $projects),
+    'works' => array_map(static fn($w) => array_intersect_key($w, array_flip(['id', 'page', 'name', 'desc', 'cat', 'tags', 'thumb', 'faces', 'featured', 'url'])), $items),
 ]) ?>;</script>
 <script type="module" src="<?= h(asset('assets/scene.js')) ?>"></script>
 <script src="<?= h(asset('assets/main.js')) ?>" defer></script>
