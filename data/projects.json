@@ -1,0 +1,87 @@
+[
+  {
+    "name": "WikiChree",
+    "category": "WEB SERVICE",
+    "summary": "PukiWikiをベースにしたWikiホスティングサービス。",
+    "detail": "WikiFarmとして複数のWikiを運営できるサービス。PukiWikiに加え、DokuWiki系エンジンにも対応。",
+    "tags": [
+      "PHP",
+      "PukiWiki",
+      "DokuWiki",
+      "Web Hosting"
+    ],
+    "url": "https://www.wikichree.com/",
+    "source": "https://github.com/PTOM76",
+    "visual": "wiki",
+    "symbol": "W",
+    "visualLabel": "WIKI HOSTING"
+  },
+  {
+    "name": "ModParks",
+    "category": "WEB PLATFORM",
+    "summary": "Minecraft Modの公開・発見・管理を支援するプラットフォーム。",
+    "detail": "Next.jsとCloudflareを利用。GitHub Releases、Modrinth、CurseForgeなどの情報連携や、作品の公開・管理機能を開発。",
+    "tags": [
+      "Next.js",
+      "TypeScript",
+      "Cloudflare",
+      "D1 / R2"
+    ],
+    "url": "https://modparks.pitan76.net/",
+    "source": "https://github.com/PTOM76",
+    "visual": "parks",
+    "symbol": "M",
+    "visualLabel": "MOD PLATFORM"
+  },
+  {
+    "name": "WeVocal",
+    "category": "WEB AUDIO",
+    "summary": "音MAD制作向けのブラウザ音声ツール群。",
+    "detail": "Synth、Extractor、Converter、Analyzer、Studioを開発。Rustで実装した音声処理をWebAssembly化し、Web Worker上で実行。",
+    "tags": [
+      "React",
+      "TypeScript",
+      "Rust",
+      "WebAssembly"
+    ],
+    "url": "https://wevocal.pitan76.net/",
+    "source": "https://github.com/PTOM76/wevocal-webpage",
+    "visual": "audio",
+    "symbol": "♫",
+    "visualLabel": "WEB AUDIO TOOLS"
+  },
+  {
+    "name": "MCPitanLib & Minecraft Mods",
+    "category": "JAVA / OPEN SOURCE",
+    "summary": "Minecraft向けライブラリと複数のMod。",
+    "detail": "Fabric、Forge、NeoForgeなど複数のModローダーやMinecraftバージョンに対応するライブラリ・Modを開発、保守。",
+    "tags": [
+      "Java",
+      "Fabric",
+      "Forge",
+      "NeoForge"
+    ],
+    "url": "https://modrinth.com/user/pitan76",
+    "source": "https://github.com/PTOM76",
+    "visual": "mods",
+    "symbol": "⌘",
+    "visualLabel": "MINECRAFT MODS"
+  },
+  {
+    "name": "Asset Bridge",
+    "category": "MINECRAFT / OPEN SOURCE",
+    "summary": "Minecraftのリソースを別バージョン間で利用するためのアセット系Mod。",
+    "detail": "複数のMinecraftバージョンを対象に、ゲーム内アセットの互換性を扱う。コード実行を伴わないアセット中心の設計。",
+    "tags": [
+      "Minecraft",
+      "Java",
+      "Assets",
+      "Mod Compatibility"
+    ],
+    "url": "https://modrinth.com/user/pitan76",
+    "source": "https://github.com/PTOM76",
+    "visual": "mods",
+    "symbol": "A",
+    "visualLabel": "ASSET COMPATIBILITY"
+  }
+]

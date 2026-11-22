@@ -1,0 +1,74 @@
+{
+  "title": "Pitan — Portfolio",
+  "author": "Pitan",
+  "description": "Pitanの制作物・開発プロジェクト。",
+  "lead": "Software / Web / Open Source",
+  "links": {
+    "github": "https://github.com/PTOM76",
+    "social": "https://x.com/PitaQ_Modding",
+    "website": "https://www.pitan76.net/"
+  },
+  "qualifications": [
+    {
+      "name": "応用情報技術者試験"
+    },
+    {
+      "name": "基本情報技術者試験"
+    },
+    {
+      "name": "ITパスポート試験"
+    },
+    {
+      "name": "ネットワークスペシャリスト試験（科目A合格）"
+    },
+    {
+      "name": "普通自動車第一種運転免許"
+    }
+  ],
+  "skills": [
+    {
+      "name": "LANGUAGES",
+      "items": [
+        "Java",
+        "PHP",
+        "JavaScript",
+        "TypeScript",
+        "C / C++",
+        "Python",
+        "C#"
+      ]
+    },
+    {
+      "name": "WEB",
+      "items": [
+        "React",
+        "Next.js",
+        "Node.js",
+        "HTML / CSS",
+        "REST API",
+        "PWA"
+      ]
+    },
+    {
+      "name": "INFRASTRUCTURE",
+      "items": [
+        "Cloudflare",
+        "Workers",
+        "D1 / R2",
+        "Docker",
+        "Linux",
+        "GitHub Actions"
+      ]
+    },
+    {
+      "name": "OTHER",
+      "items": [
+        "Rust / WASM",
+        "Fabric",
+        "Forge",
+        "NeoForge",
+        "PukiWiki"
+      ]
+    }
+  ]
+}

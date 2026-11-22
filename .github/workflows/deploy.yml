@@ -1,0 +1,39 @@
+name: Build and deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - name: Validate JSON
+        run: |
+          php -r 'json_decode(file_get_contents("data/site.json"), true, 512, JSON_THROW_ON_ERROR);'
+          php -r 'json_decode(file_get_contents("data/projects.json"), true, 512, JSON_THROW_ON_ERROR);'
+      - name: Generate static site
+        run: php build.php
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
