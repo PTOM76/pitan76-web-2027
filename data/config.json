@@ -1,0 +1,71 @@
+{
+  "worksUrl": "https://raw.githubusercontent.com/PTOM76/works-info/main/list.json",
+  "categories": {
+    "mcmod": "Minecraft Mod",
+    "repomod": "Minecraft Mod",
+    "web": "Web",
+    "app": "App",
+    "pukiwiki": "PukiWiki",
+    "pukiwikiskin": "PukiWiki",
+    "mcplugin": "MC Plugin",
+    "mmdplugin": "MMD Plugin",
+    "chrome-extension": "Extension",
+    "misc": "Misc"
+  },
+  "linkLabels": {
+    "modparks": "ModParks",
+    "github": "GitHub",
+    "curseforge": "CurseForge",
+    "modrinth": "Modrinth",
+    "spigot": "Spigot",
+    "chrome": "Chrome Web Store"
+  },
+  "skillGroups": {
+    "LANGUAGES": "言語",
+    "WEB": "Web",
+    "INFRASTRUCTURE": "インフラ",
+    "OTHER": "そのほか"
+  },
+  "iconSources": {
+    "devicon": "https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons",
+    "simpleIcons": "https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons"
+  },
+  "skillIcons": {
+    "Java": ["java/java-original"],
+    "PHP": ["php/php-original"],
+    "JavaScript": ["javascript/javascript-original"],
+    "TypeScript": ["typescript/typescript-original"],
+    "C / C++": ["cplusplus/cplusplus-original"],
+    "Python": ["python/python-original"],
+    "C#": ["csharp/csharp-original"],
+    "React": ["react/react-original"],
+    "Next.js": ["nextjs/nextjs-original"],
+    "Node.js": ["nodejs/nodejs-original"],
+    "HTML / CSS": ["html5/html5-original", "css3/css3-original"],
+    "REST API": ["openapi/openapi-original"],
+    "PWA": ["si:pwa:5A0FC8"],
+    "Cloudflare": ["cloudflare/cloudflare-original"],
+    "Workers": ["cloudflareworkers/cloudflareworkers-original"],
+    "Docker": ["docker/docker-original"],
+    "Linux": ["linux/linux-original"],
+    "GitHub Actions": ["githubactions/githubactions-original"],
+    "Rust / WASM": ["rust/rust-original", "wasm/wasm-original"],
+    "Fabric": ["https://www.pitan76.net/image/fabric.png"],
+    "Forge": ["https://www.pitan76.net/image/forge.png"],
+    "NeoForge": ["https://www.pitan76.net/image/neoforge.png"],
+    "PukiWiki": ["https://pukiwiki.sourceforge.io/image/pukiwiki.png"]
+  },
+  "images": {
+    "pitan": 640,
+    "ftp": 480,
+    "http": 480,
+    "smtp": 480
+  },
+  "favicons": {
+    "favicon": 64,
+    "favicon-32": 32,
+    "apple-touch-icon": 192
+  },
+  "indexInitial": 24,
+  "chatlogLines": 4
+}

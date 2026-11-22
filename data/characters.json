@@ -1,0 +1,24 @@
+{
+  "ftp": {
+    "name": "FTPプロトコルさん",
+    "proto": "FTP / File Transfer Protocol",
+    "desc": "ファイルの転送を担当する。サーバーへのアップロードやダウンロードで作品を届ける。",
+    "start": "STOR {file}.dat",
+    "done": "226 Transfer complete"
+  },
+  "http": {
+    "name": "HTTPプロトコルさん",
+    "proto": "HTTP / Hypertext Transfer Protocol",
+    "desc": "Webページの配送を担当する。リクエストを受け取り、レスポンスとして作品を届ける。見つからないときは 404 を返す。",
+    "start": "GET /works/{file} HTTP/1.1",
+    "done": "HTTP/1.1 200 OK",
+    "categories": ["Web", "Extension"]
+  },
+  "smtp": {
+    "name": "SMTPプロトコルさん",
+    "proto": "SMTP / Simple Mail Transfer Protocol",
+    "desc": "メールの配送を担当する。宛先を確かめてから、作品をメールに載せて届ける。",
+    "start": "DATA {file}.eml",
+    "done": "250 OK: queued"
+  }
+}
