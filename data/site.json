@@ -4,9 +4,7 @@
   "description": "Pitanの制作物と開発プロジェクト。",
   "lead": "Bug-Creator のぴたんです。MODやWebなどを開発している、技術系が好きな機械弱者。",
   "links": {
-    "github": "https://github.com/PTOM76",
-    "social": "https://x.com/PitaQ_Modding",
-    "website": "https://www.pitan76.net/"
+    "github": "https://github.com/PTOM76"
   },
   "qualifications": [
     {
@@ -19,7 +17,7 @@
       "name": "ITパスポート試験"
     },
     {
-      "name": "MT免許"
+      "name": "普通自動車第一種運転免許"
     }
   ],
   "skills": [
@@ -67,5 +65,40 @@
         "PukiWiki"
       ]
     }
+  ],
+  "history": [
+    {
+      "period": "小学生",
+      "items": "HTML・BASIC"
+    },
+    {
+      "period": "中学生",
+      "items": "プログラミング・Minecraftサーバー運用"
+    },
+    {
+      "period": "高校生",
+      "items": "Minecraft Mod開発"
+    },
+    {
+      "period": "大学生",
+      "items": "Webサービス・ソフトウェア開発"
+    }
+  ],
+  "achievements": [
+    {
+      "value": "40+",
+      "label": "Minecraft Mod 開発作品"
+    },
+    {
+      "value": "1,350万+",
+      "label": "Minecraft Mod 累計ダウンロード"
+    },
+    {
+      "value": "94",
+      "label": "WikiChree.COM 運営Wiki"
+    }
+  ],
+  "activities": [
+    "技術系コミュニティの運営"
   ]
 }
