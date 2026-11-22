@@ -24,8 +24,8 @@ const FOV = 40;
 const CAM_Z = 12;
 const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 100);
 camera.position.z = CAM_Z;
-const hemi = new THREE.HemisphereLight(0xffffff, 0xb9b2a0, 2.2);
-scene.add(hemi);
+// ブロックの見た目は昼と夜で変えない
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b2a0, 2.2));
 const sun = new THREE.DirectionalLight(0xffffff, 1.4);
 sun.position.set(4, 6, 8);
 scene.add(sun);
@@ -79,15 +79,6 @@ const edges = new THREE.EdgesGeometry(geo);
 const edgeMat = new THREE.LineBasicMaterial({ color: INK });
 
 const blocks = [];
-// 夜は全体を暗くし、作品入りの鉱石ブロックだけ光らせて見つけやすくする
-const glowMats = [];
-function setNight(dark) {
-  hemi.intensity = dark ? 0.9 : 2.2;
-  hemi.color.set(dark ? 0x9fb4ff : 0xffffff);
-  sun.intensity = dark ? 0.6 : 1.4;
-  for (const m of glowMats) m.emissiveIntensity = dark ? 0.55 : 0;
-}
-addEventListener('themechange', (e) => setNight(e.detail.dark));
 const featured = [];
 
 function makeBlock(work, i) {
@@ -105,11 +96,9 @@ function makeBlock(work, i) {
       });
       return m;
     });
-    for (const m of mats) { m.emissive = new THREE.Color(0xffffff); m.emissiveIntensity = 0; m.emissiveMap = null; glowMats.push(m); }
     mat = n === 1 ? mats[0] : Array.from({ length: 6 }, (_, f) => mats[f % n]);
   } else if (work) {
-    mat = new THREE.MeshLambertMaterial({ map: oreTexture(work.cat), emissive: new THREE.Color(oreColor(work.cat)), emissiveIntensity: 0 });
-    glowMats.push(mat);
+    mat = new THREE.MeshLambertMaterial({ map: oreTexture(work.cat) });
   } else {
     mat = new THREE.MeshLambertMaterial({ map: stoneTex });
   }
@@ -296,7 +285,6 @@ addEventListener('summon', (e) => {
 });
 
 let bug = false;
-setNight(document.documentElement.dataset.theme === 'dark');
 
 // sudo rm -rf / : すべてのブロックが一度に砕け、少しずつ戻る
 addEventListener('collapse', () => {

@@ -353,7 +353,7 @@ html[data-theme="dark"] .sticker img, html[data-theme="dark"] .courier img, html
 html[data-theme="dark"] .courier-log { background: #000; color: var(--ink); }
 html[data-theme="dark"] .chatlog li { background: rgba(0, 0, 0, .6); }
 ::selection, .bar nav a:hover, .bar-sound:hover, .bar-theme:hover, .bar-dex:hover, .bar-term, .index a:hover, .block-tip.has-work,
-.loot-get, .loot-links a, .loot-close:hover, .term-bar button { color: var(--on); }
+.loot-get, .loot-links a, .work-links a:first-child, .loot-close:hover, .term-bar button { color: var(--on); }
 body { transition: background-color .4s; }
 
 /* ---------- テーマ・図鑑のボタン ---------- */
@@ -387,3 +387,16 @@ body.collapsed main > *, body.collapsed .footer {
   100% { transform: translate(var(--fall-x, 0), 140vh) rotate(var(--fall-r, 20deg)); }
 }
 @media (prefers-reduced-motion: reduce) { body.collapsed main > *, body.collapsed .footer { animation: none; opacity: .2; } }
+/* ---------- 作品の詳細ページ ---------- */
+.work-page { max-width: 720px; margin: 0 auto; padding: 32px var(--pad) 0; }
+.crumb { margin: 0 0 16px; font-size: 13px; color: var(--ink-2); }
+.work-detail-card { width: 100%; padding: 20px 22px 24px; animation: none; }
+.work-detail-card h1 { margin: 0; font-size: clamp(26px, 5vw, 36px); line-height: 1.3; font-weight: 900; }
+
+/* ---------- 404 ---------- */
+.nf { min-height: 100vh; display: flex; align-items: flex-end; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 16px; }
+.nf img { width: 220px; transform: rotate(-6deg); filter: var(--sticker); }
+.nf-res { background: var(--panel); border: 2px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); padding: 16px 20px; margin-bottom: 40px; font: 14px/1.7 var(--mono); }
+.nf-res h1 { font: 400 56px/1 var(--dot); margin: 0 0 8px; }
+.nf-res pre { margin: 0 0 12px; }
+.nf-res a { display: inline-block; background: var(--eye); border: 2px solid var(--ink); padding: 4px 12px; color: var(--on); text-decoration: none; font-weight: 700; }
