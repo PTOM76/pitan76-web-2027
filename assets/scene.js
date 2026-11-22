@@ -113,6 +113,7 @@ function makeBlock(work, i) {
     z: -2 - Math.random() * 12,
     size: 0.6 + Math.random() * 0.9,
     rot: new THREE.Vector3(Math.random() * 6, Math.random() * 6, 0),
+    dragX: 0, dragY: 0,
     spin: (Math.random() - 0.5) * 0.5,
     phase: Math.random() * 10,
     alive: 1,
@@ -167,6 +168,13 @@ crack.visible = false;
 const MINE_TIME = 0.6;
 let mining = null;        // { b, progress, stage }
 let pointerHeld = false;
+// 掴んでいるブロックと直前のカーソル位置。掴んだまま動かすとブロックが回る
+let grabbed = null;
+// Shift を押している間は回すだけで掘らない
+let rotateOnly = false;
+addEventListener('keydown', (e) => { if (e.key === 'Shift') rotateOnly = true; });
+addEventListener('keyup', (e) => { if (e.key === 'Shift') rotateOnly = false; });
+const lastPt = { x: 0, y: 0 };
 
 // 破片
 const shardGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
@@ -198,29 +206,38 @@ const mouse = new THREE.Vector2();
 const mouseTarget = new THREE.Vector2();
 const ndc = new THREE.Vector2(9, 9);
 const ray = new THREE.Raycaster();
-const UI = 'a,button,input,label,p,h1,h2,h3,li,td,th,dl,.work-text,.bar,.terminal,.loot,.courier,.toast,.spec,.inv,.filters';
+const UI = 'a,button,input,label,p,h1,h2,h3,li,td,th,dl,.work-text,.bar,.terminal,.loot,.chara,.courier,.toast,.spec,.inv,.filters';
 let hovered = null;
 let broken = 0;
 
 addEventListener('pointermove', (e) => {
+  if (pointerHeld && grabbed) {
+    grabbed.dragY += (e.clientX - lastPt.x) * 0.012;
+    grabbed.dragX += (e.clientY - lastPt.y) * 0.012;
+  }
+  lastPt.x = e.clientX; lastPt.y = e.clientY;
   mouseTarget.set(e.clientX / innerWidth - 0.5, e.clientY / innerHeight - 0.5);
   if (e.target.closest(UI)) { ndc.set(9, 9); return; }
   ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
 });
 addEventListener('pointerdown', (e) => {
   if (e.button !== 0 || e.target.closest(UI)) return;
+  grabbed = null;
   // タッチでは pointermove が先に来ないため、ここでも位置を更新する
   ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  lastPt.x = e.clientX; lastPt.y = e.clientY;
+  rotateOnly = e.shiftKey;
   pointerHeld = true;
 });
 const release = (e) => {
   pointerHeld = false;
+  grabbed = null;
   stopMining();
   if (e?.pointerType && e.pointerType !== 'mouse') ndc.set(9, 9);
 };
 addEventListener('pointerup', release);
 addEventListener('pointercancel', release);
-addEventListener('blur', release);
+addEventListener('blur', (e) => { rotateOnly = false; release(e); });
 
 function stopMining() {
   if (!mining) return;
@@ -238,7 +255,7 @@ function breakBlock(b) {
   dispatchEvent(new CustomEvent('block-break', { detail: { count: broken, work: b.work } }));
 }
 function updateMining(dt) {
-  if (!pointerHeld || !hovered) { stopMining(); return; }
+  if (!pointerHeld || !hovered || rotateOnly) { stopMining(); return; }
   if (!mining || mining.b !== hovered) {
     stopMining();
     mining = { b: hovered, progress: 0, stage: -1 };
@@ -295,8 +312,13 @@ function tick() {
   const hit = ray.intersectObjects(blocks.filter((b) => b.alive === 1).map((b) => b.mesh), false)[0];
   const prevHover = hovered;
   hovered = hit ? hit.object.userData.block : null;
+  // 押した瞬間のブロックを掴む。掴んでいる間は、カーソルが外れてもそのブロックを掘り続ける
+  if (pointerHeld && !grabbed && hovered) grabbed = hovered;
+  if (grabbed && grabbed.alive !== 1) grabbed = null;
+  if (grabbed) hovered = grabbed;
   if (hovered !== prevHover) dispatchEvent(new CustomEvent('block-hover', { detail: hovered ? { work: hovered.work } : null }));
-  document.body.style.cursor = hovered ? 'crosshair' : '';
+  document.body.style.cursor = grabbed ? 'grabbing' : hovered ? 'crosshair' : '';
+  if (grabbed) getSelection()?.removeAllRanges();   // 掴んで動かしたときに文字が選択されないようにする
   updateMining(dt);
 
   for (const b of blocks) {
@@ -354,8 +376,8 @@ function tick() {
     const showX = -0.42 + mouse.y * 0.4;
     const showY = 0.7 + Math.sin(t * 0.5) * 0.25 + mouse.x * 0.6;
     b.mesh.rotation.set(
-      THREE.MathUtils.lerp(idleX, showX, k),
-      THREE.MathUtils.lerp(idleY, showY, k),
+      THREE.MathUtils.lerp(idleX, showX, k) + (b.dragX ?? 0),
+      THREE.MathUtils.lerp(idleY, showY, k) + (b.dragY ?? 0),
       THREE.MathUtils.lerp(0, 0.08, k),
     );
 

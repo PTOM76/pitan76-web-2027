@@ -211,8 +211,8 @@
   /* ---------- ブロック破壊 → FTPちゃん / HTTPちゃんが作品を届ける ---------- */
   // Web 系の作品は HTTPちゃん、それ以外はランダム
   const couriers = {
-    ftp: { img: 'assets/img/ftp.png', start: (f) => `STOR ${f}.dat`, done: '226 Transfer complete' },
-    http: { img: 'assets/img/http.png', start: (f) => `GET /works/${f} HTTP/1.1`, done: 'HTTP/1.1 200 OK' },
+    ftp: { name: 'FTPプロトコルさん', proto: 'FTP / File Transfer Protocol', desc: 'ファイルの転送を担当する。サーバーへのアップロードやダウンロードで作品を届ける。', img: 'assets/img/ftp.png', start: (f) => `STOR ${f}.dat`, done: '226 Transfer complete' },
+    http: { name: 'HTTPプロトコルさん', proto: 'HTTP / Hypertext Transfer Protocol', desc: 'Webページの配送を担当する。リクエストを受け取り、レスポンスとして作品を届ける。見つからないときは 404 を返す。', img: 'assets/img/http.png', start: (f) => `GET /works/${f} HTTP/1.1`, done: 'HTTP/1.1 200 OK' },
   };
   const courier = $('#courier');
   const courierImg = $('img', courier);
@@ -220,6 +220,7 @@
   const cbar = $('#courier-bar');
   const loot = $('#loot');
   let delivering = false;
+  let current = couriers.ftp;
   let pending = null;
   async function deliver(w) {
     if (delivering) { pending = w; return; }
@@ -227,6 +228,7 @@
     const file = (w.id || 'item').replace(/[^a-z0-9_-]/gi, '-');
     const c = couriers[w.cat === 'Web' || w.cat === 'Extension' || Math.random() < 0.5 ? 'http' : 'ftp'];
     courierImg.src = c.img;
+    current = c;
     ccmd.textContent = c.start(file);
     cbar.style.transition = 'none';
     cbar.style.width = '0';
@@ -240,7 +242,7 @@
     showLoot(w);
     // カードを閉じるまで（最長 8 秒）その場に残る
     const t0 = performance.now();
-    while (!loot.hidden && performance.now() - t0 < 8000) await wait(200);
+    while ((!loot.hidden && performance.now() - t0 < 8000) || !chara.hidden) await wait(200);
     await wait(1200);
     courier.classList.remove('show');
     delivering = false;
@@ -251,6 +253,21 @@
       deliver(next);
     }
   }
+  // 配達中のキャラをタップすると紹介カードを開く
+  const chara = $('#chara');
+  $('#courier-btn').addEventListener('click', () => {
+    $('#chara-img').src = current.img;
+    $('#chara-name').textContent = current.name;
+    $('#chara-proto').textContent = current.proto;
+    $('#chara-desc').textContent = current.desc;
+    chara.hidden = false;
+    sound.blip();
+    achieve('chara-' + (current === couriers.http ? 'http' : 'ftp'), current.name + 'に会った', '✉');
+  });
+  $('#chara-close').addEventListener('click', () => { chara.hidden = true; });
+  chara.addEventListener('click', (e) => { if (e.target === chara) chara.hidden = true; });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') chara.hidden = true; });
+
   function showLoot(w) {
     const img = $('#loot-img');
     // 画像のない作品で前の作品の画像が残らないよう、毎回 src を消す

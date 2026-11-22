@@ -72,7 +72,7 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
         <?php endforeach; ?>
       </ol>
       <?php endif; ?>
-      <p class="hero-hint">背景のブロックは長押しで掘れます。色の粒が入ったブロックや絵の付いたブロックには、作品が埋まっています。</p>
+      <p class="hero-hint">背景のブロックは長押しで掘れます。色の粒が入ったブロックや絵の付いたブロックには、作品が埋まっています。<span class="hint-pc">Shift キーを押しながらドラッグすると、壊さずに回せます。</span></p>
     </div>
     <div class="hero-sticker">
       <button class="sticker" type="button" id="pitan" aria-label="ぴたんをなでる">
@@ -189,9 +189,21 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
   <p class="footer-hint"><kbd>`</kbd> キーでターミナルが開きます</p>
 </footer>
 
-<div class="courier" id="courier" aria-hidden="true">
-  <img src="assets/img/ftp.png" alt="">
+<div class="courier" id="courier">
+  <button type="button" class="courier-btn" id="courier-btn" aria-label="キャラクターを見る"><img src="assets/img/ftp.png" alt="" draggable="false"></button>
   <div class="courier-log"><span id="courier-cmd"></span><i><b id="courier-bar"></b></i></div>
+</div>
+
+<div class="chara" id="chara" hidden>
+  <div class="chara-card sk" role="dialog" aria-labelledby="chara-name">
+    <button type="button" class="loot-close" id="chara-close" aria-label="閉じる">×</button>
+    <img id="chara-img" alt="" draggable="false">
+    <div class="chara-text">
+      <small id="chara-proto"></small>
+      <b id="chara-name"></b>
+      <p id="chara-desc"></p>
+    </div>
+  </div>
 </div>
 
 <div class="loot" id="loot" hidden>
