@@ -68,20 +68,20 @@
     "visualLabel": "MINECRAFT MODS"
   },
   {
-    "name": "Asset Bridge",
-    "category": "MINECRAFT / OPEN SOURCE",
-    "summary": "Minecraftのリソースを別バージョン間で利用するためのアセット系Mod。",
-    "detail": "複数のMinecraftバージョンを対象に、ゲーム内アセットの互換性を扱う。コード実行を伴わないアセット中心の設計。",
+    "name": "Minecraft Block Model Viewer",
+    "category": "DESKTOP SOFTWARE",
+    "summary": "Minecraftのブロックモデルを表示し、画像として書き出すツール。",
+    "detail": "Windows / macOS / Linux向け。Minecraftのブロックモデルをレンダリングし、画像としてエクスポートできるデスクトップアプリ。",
     "tags": [
+      "Desktop App",
       "Minecraft",
-      "Java",
-      "Assets",
-      "Mod Compatibility"
+      "Model Rendering",
+      "Image Export"
     ],
-    "url": "https://modrinth.com/user/pitan76",
-    "source": "https://github.com/PTOM76",
+    "url": "https://github.com/PTOM76/mc-block-model-viewer",
+    "source": "",
     "visual": "mods",
-    "symbol": "A",
-    "visualLabel": "ASSET COMPATIBILITY"
+    "symbol": "▧",
+    "visualLabel": "BLOCK MODEL VIEWER"
   }
 ]
