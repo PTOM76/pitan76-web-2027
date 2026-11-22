@@ -198,10 +198,14 @@ body.gl .work-slot img { visibility: hidden; }
 .slot:hover, .slot:focus { background: #a7a7a7; outline: none; }
 .inv ul { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
 .slot { aspect-ratio: 1; align-content: center; gap: 6px; padding: 6px 4px; }
-/* ロゴは明るい台座に載せ、暗い色のロゴも見えるようにする */
-.slot-icon, .slot-mark { width: 38px; height: 38px; justify-self: center; }
-.slot-icon { padding: 5px; background: #f4f4f4; border: 2px solid #373737; }
-.slot-mark { display: grid; place-items: center; background: #f4f4f4; border: 2px solid #373737; color: var(--ink); text-shadow: none; font: 400 15px var(--dot); }
+/* ロゴは台座なしでスロットに直接置き、持ち物欄のアイテムのように影だけ付ける */
+.slot-icons { display: flex; justify-content: center; align-items: center; height: 38px; }
+.slot-icons img { width: 34px; height: 34px; filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, .35)); }
+.slot-icons.is-pair img { width: 28px; height: 28px; }
+.slot-icons.is-pair img + img { margin-left: -6px; transform: translateY(6px); }
+.slot:hover .slot-icons img, .slot:focus .slot-icons img { transform: scale(1.12); }
+.slot:hover .slot-icons.is-pair img + img { transform: translateY(6px) scale(1.12); }
+.slot-mark { height: 38px; display: grid; place-items: center; font: 400 22px var(--dot); color: #fff; text-shadow: 2px 2px 0 #3f3f3f; }
 .slot-name { font-size: 12px; line-height: 1.2; }
 
 /* ---------- log ---------- */
@@ -218,12 +222,10 @@ body.gl .work-slot img { visibility: hidden; }
 @media (max-width: 820px) { .log { grid-template-columns: 1fr; } }
 
 /* ---------- footer ---------- */
-.footer { margin-top: 80px; padding: 56px var(--pad) 32px; background: var(--panel); border-top: 2px solid var(--ink); text-align: center; }
-.footer-pitan { width: 96px; margin: 0 auto 12px; border-radius: 50%; border: 2px solid var(--ink); }
-.footer-msg { margin: 0 0 8px; font: 400 clamp(22px, 3vw, 32px) var(--dot); }
-.footer-links { margin: 0 0 32px; }
-.footer-links a { font-weight: 700; }
-.footer-small { margin: 0; font-size: 12px; color: var(--ink-2); }
+.footer { margin-top: 80px; padding: 18px var(--pad); background: var(--panel); border-top: 2px solid var(--ink); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; font-size: 13px; }
+.footer a { font-weight: 700; }
+.footer p { margin: 0; color: var(--ink-2); }
+.footer-hint { margin-left: auto !important; }
 kbd { font: 12px var(--mono); border: 1px solid currentColor; border-radius: 3px; padding: 0 5px; }
 
 /* ---------- courier（FTPちゃん / HTTPちゃんの配達） ---------- */

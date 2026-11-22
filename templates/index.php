@@ -148,7 +148,7 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
             <?php foreach ($g['items'] as $it): $ic = $icons[$it] ?? null; ?>
               <li class="slot" tabindex="0">
                 <?php if ($ic): ?>
-                  <svg class="slot-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#<?= h($ic['hex']) ?>" d="<?= h($ic['path']) ?>"/></svg>
+                  <span class="slot-icons<?= count($ic) > 1 ? ' is-pair' : '' ?>" aria-hidden="true"><?php foreach ($ic as $file): ?><img src="assets/icons/<?= h($file) ?>" alt="" width="34" height="34" loading="lazy" draggable="false"><?php endforeach; ?></span>
                 <?php else: ?>
                   <span class="slot-mark" aria-hidden="true"><?= h(mb_substr(preg_replace('/[^A-Za-z0-9#]/', '', $it), 0, 2)) ?></span>
                 <?php endif; ?>
@@ -184,10 +184,9 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
 </main>
 
 <footer class="footer">
-  <img class="footer-pitan" src="assets/img/pitan.png" alt="" width="120" height="120" loading="lazy">
-  <p class="footer-msg">最後まで見てくれてありがとう。</p>
-  <p class="footer-links"><a href="<?= h($site['links']['github']) ?>" target="_blank" rel="noopener">GitHub</a></p>
-  <p class="footer-small">© <?= date('Y') ?> <?= h($site['author']) ?>　<kbd>`</kbd> キーでターミナルが開きます</p>
+  <a href="<?= h($site['links']['github']) ?>" target="_blank" rel="noopener">GitHub</a>
+  <p>© <?= date('Y') ?> <?= h($site['author']) ?></p>
+  <p class="footer-hint"><kbd>`</kbd> キーでターミナルが開きます</p>
 </footer>
 
 <div class="courier" id="courier" aria-hidden="true">

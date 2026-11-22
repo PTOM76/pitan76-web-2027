@@ -103,76 +103,83 @@ function work_thumbs(array $works, string $cacheDir): array {
 }
 
 /**
- * サイトのアイコンをブロック風のドット絵にする。
- * 丸い元画像の内接正方形を 14x14 に縮めて色数を減らし、焦げ茶の枠と立体の縁を付けて 16x16 にする。
- * それを整数倍に拡大して出力する。
+ * サイトのアイコンを丸いドット絵にする。
+ * 丸い元画像を 16x16 に縮めて色数を減らし、円の外を透明に、円周を焦げ茶の線にする。
+ * 円の内側の左上は明るく、右下は暗くして立体に見せる。それを整数倍に拡大して出力する。
  */
 function block_icon(string $src, string $dst, int $size): void {
     $img = imagecreatefrompng($src);
-    $w = imagesx($img);
-    $side = (int)floor($w / M_SQRT2);
-    $off = intdiv($w - $side, 2);
     $px = imagecreatetruecolor(16, 16);
-    imagecopyresampled($px, $img, 1, 1, $off, $off, 14, 14, $side, $side);
-    $ink = [43, 23, 16];
+    imagecopyresampled($px, $img, 0, 0, 0, 0, 16, 16, imagesx($img), imagesy($img));
+    $res = imagecreatetruecolor(16, 16);
+    imagealphablending($res, false);
+    imagesavealpha($res, true);
+    $clear = imagecolorallocatealpha($res, 0, 0, 0, 127);
     for ($y = 0; $y < 16; $y++) {
         for ($x = 0; $x < 16; $x++) {
-            if ($x === 0 || $y === 0 || $x === 15 || $y === 15) {
-                [$r, $g, $b] = $ink;
-            } else {
-                $c = imagecolorat($px, $x, $y);
-                // 6 段階に減色
-                [$r, $g, $b] = array_map(static fn($v) => (int)(round($v / 51) * 51), [($c >> 16) & 255, ($c >> 8) & 255, $c & 255]);
-                // 上と左の縁は明るく、下と右の縁は暗くして立体に見せる
-                $k = ($x === 1 || $y === 1) ? 1.3 : (($x === 14 || $y === 14) ? 0.7 : 1.0);
-                [$r, $g, $b] = array_map(static fn($v) => max(0, min(255, (int)($v * $k + ($k > 1 ? 18 : 0)))), [$r, $g, $b]);
+            $d = hypot($x - 7.5, $y - 7.5);
+            if ($d > 7.9) { imagesetpixel($res, $x, $y, $clear); continue; }
+            if ($d > 6.7) { imagesetpixel($res, $x, $y, imagecolorallocate($res, 43, 23, 16)); continue; }
+            $c = imagecolorat($px, $x, $y);
+            $rgb = array_map(static fn($v) => (int)(round($v / 51) * 51), [($c >> 16) & 255, ($c >> 8) & 255, $c & 255]);
+            if ($d > 5.6) {
+                // 円周のすぐ内側。左上は明るく、右下は暗く
+                $k = ($x + $y < 15) ? 1.3 : 0.7;
+                $rgb = array_map(static fn($v) => max(0, min(255, (int)($v * $k + ($k > 1 ? 18 : 0)))), $rgb);
             }
-            imagesetpixel($px, $x, $y, imagecolorallocate($px, $r, $g, $b));
+            imagesetpixel($res, $x, $y, imagecolorallocate($res, ...$rgb));
         }
     }
     $out = imagecreatetruecolor($size, $size);
-    imagecopyresized($out, $px, 0, 0, 0, 0, $size, $size, 16, 16);   // 最近傍で拡大
+    imagealphablending($out, false);
+    imagesavealpha($out, true);
+    imagecopyresized($out, $res, 0, 0, 0, 0, $size, $size, 16, 16);   // 最近傍で拡大
     imagepng($out, $dst, 9);
 }
 
-/** 技術スタックの名前 => Simple Icons の [slug, title]。null はロゴなし（文字のマークで表示）。 */
-const SIMPLE_ICONS = 'https://cdn.jsdelivr.net/npm/simple-icons@13.21.0';
+/**
+ * 技術スタックの名前 => ロゴのリスト。
+ * 通常は Devicon のカラーロゴ（"java/java-original" の形）。"si:slug:色" は Simple Icons の単色ロゴを指定色で塗る。
+ * ここにない名前はロゴなし（文字のマークで表示）。
+ */
+const DEVICON = 'https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons';
+const SIMPLE_ICONS = 'https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons';
 const SKILL_ICONS = [
-    'Java' => ['openjdk', 'OpenJDK'], 'PHP' => ['php', 'PHP'], 'JavaScript' => ['javascript', 'JavaScript'],
-    'TypeScript' => ['typescript', 'TypeScript'], 'C / C++' => ['cplusplus', 'C++'], 'Python' => ['python', 'Python'],
-    'React' => ['react', 'React'], 'Next.js' => ['nextdotjs', 'Next.js'], 'Node.js' => ['nodedotjs', 'Node.js'],
-    'HTML / CSS' => ['html5', 'HTML5'], 'REST API' => ['openapiinitiative', 'OpenAPI Initiative'], 'PWA' => ['pwa', 'PWA'],
-    'Cloudflare' => ['cloudflare', 'Cloudflare'], 'Workers' => ['cloudflareworkers', 'Cloudflare Workers'],
-    'Docker' => ['docker', 'Docker'], 'Linux' => ['linux', 'Linux'], 'GitHub Actions' => ['githubactions', 'GitHub Actions'],
-    'Rust / WASM' => ['rust', 'Rust'],
+    'Java' => ['java/java-original'], 'PHP' => ['php/php-original'], 'JavaScript' => ['javascript/javascript-original'],
+    'TypeScript' => ['typescript/typescript-original'], 'C / C++' => ['cplusplus/cplusplus-original'],
+    'Python' => ['python/python-original'], 'C#' => ['csharp/csharp-original'],
+    'React' => ['react/react-original'], 'Next.js' => ['nextjs/nextjs-original'], 'Node.js' => ['nodejs/nodejs-original'],
+    'HTML / CSS' => ['html5/html5-original', 'css3/css3-original'], 'REST API' => ['openapi/openapi-original'],
+    'PWA' => ['si:pwa:5A0FC8'],
+    'Cloudflare' => ['cloudflare/cloudflare-original'], 'Workers' => ['cloudflareworkers/cloudflareworkers-original'],
+    'Docker' => ['docker/docker-original'], 'Linux' => ['linux/linux-original'],
+    'GitHub Actions' => ['githubactions/githubactions-original'], 'Rust / WASM' => ['rust/rust-original', 'wasm/wasm-original'],
 ];
 
 /**
- * 技術スタックのロゴ（SVG のパスとブランドカラー）を取得する。キャッシュがあればそれを使う。
- * 返り値は 名前 => ['path' => ..., 'hex' => ...]。取得できなかったものは含まない。
+ * 技術スタックのロゴを取得して .cache/icons に保存する。
+ * 返り値は 名前 => [ファイル名, ...]。1 つも取得できなかった名前は含まない。
  */
 function skill_icons(array $skills, string $cacheDir): array {
     $dir = "$cacheDir/icons";
     if (!is_dir($dir)) mkdir($dir, 0777, true);
-    $dataFile = "$dir/simple-icons.json";
-    if (!is_file($dataFile) && ($raw = http_get(SIMPLE_ICONS . '/_data/simple-icons.json'))) file_put_contents($dataFile, $raw);
-    $hexByTitle = [];
-    if (is_file($dataFile)) {
-        $data = json_data($dataFile);
-        foreach ($data['icons'] ?? $data as $i) $hexByTitle[$i['title']] = $i['hex'];
-    }
     $out = [];
     foreach ($skills as $g) {
         foreach ($g['items'] as $name) {
-            if (!isset(SKILL_ICONS[$name])) continue;
-            [$slug, $title] = SKILL_ICONS[$name];
-            $file = "$dir/$slug.svg";
-            if (!is_file($file) && ($raw = http_get(SIMPLE_ICONS . "/icons/$slug.svg"))) file_put_contents($file, $raw);
-            if (!is_file($file) || !preg_match('/<path d="([^"]+)"/', file_get_contents($file), $m)) {
-                fwrite(STDERR, "warning: icon skipped: $slug\n");
-                continue;
+            foreach (SKILL_ICONS[$name] ?? [] as $ref) {
+                if (str_starts_with($ref, 'si:')) {
+                    [, $slug, $hex] = explode(':', $ref);
+                    $file = "si-$slug.svg";
+                    if (!is_file("$dir/$file") && ($raw = http_get(SIMPLE_ICONS . "/$slug.svg"))) {
+                        file_put_contents("$dir/$file", str_replace('<path ', "<path fill=\"#$hex\" ", $raw));
+                    }
+                } else {
+                    $file = basename($ref) . '.svg';
+                    if (!is_file("$dir/$file") && ($raw = http_get(DEVICON . "/$ref.svg"))) file_put_contents("$dir/$file", $raw);
+                }
+                if (is_file("$dir/$file")) $out[$name][] = $file;
+                else fwrite(STDERR, "warning: icon skipped: $ref\n");
             }
-            $out[$name] = ['path' => $m[1], 'hex' => $hexByTitle[$title] ?? '2b1710'];
         }
     }
     return $out;
@@ -240,6 +247,8 @@ foreach (['favicon' => 64, 'favicon-32' => 32, 'apple-touch-icon' => 192] as $na
     if (!is_file($cached) || filemtime($cached) < filemtime($src) || filemtime($cached) < filemtime(__FILE__)) block_icon($src, $cached, $size);
     copy($cached, "$out/assets/img/$name.png");
 }
+@mkdir("$out/assets/icons", 0777, true);
+foreach (array_unique(array_merge(...array_values($icons ?: [[]]))) as $file) copy("$cacheDir/icons/$file", "$out/assets/icons/$file");
 foreach ($thumbs as $id) {
     copy("$cacheDir/works/$id.jpg", "$out/assets/works/$id.jpg");
     copy("$cacheDir/works/$id-w.jpg", "$out/assets/works/$id-w.jpg");
