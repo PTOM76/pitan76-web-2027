@@ -220,8 +220,9 @@
   const cbar = $('#courier-bar');
   const loot = $('#loot');
   let delivering = false;
+  let pending = null;
   async function deliver(w) {
-    if (delivering) return;
+    if (delivering) { pending = w; return; }
     delivering = true;
     const file = (w.id || 'item').replace(/[^a-z0-9_-]/gi, '-');
     const c = couriers[w.cat === 'Web' || w.cat === 'Extension' || Math.random() < 0.5 ? 'http' : 'ftp'];
@@ -243,6 +244,12 @@
     await wait(1200);
     courier.classList.remove('show');
     delivering = false;
+    if (pending) {
+      const next = pending;
+      pending = null;
+      await wait(500);
+      deliver(next);
+    }
   }
   function showLoot(w) {
     const img = $('#loot-img');

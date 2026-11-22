@@ -198,7 +198,7 @@ const mouse = new THREE.Vector2();
 const mouseTarget = new THREE.Vector2();
 const ndc = new THREE.Vector2(9, 9);
 const ray = new THREE.Raycaster();
-const UI = 'a,button,input,label,p,h1,h2,h3,li,td,th,dl,.work-text,.bar,.term-win,.loot-card,.spec,.inv,.filters';
+const UI = 'a,button,input,label,p,h1,h2,h3,li,td,th,dl,.work-text,.bar,.terminal,.loot,.courier,.toast,.spec,.inv,.filters';
 let hovered = null;
 let broken = 0;
 
@@ -213,7 +213,11 @@ addEventListener('pointerdown', (e) => {
   ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   pointerHeld = true;
 });
-const release = () => { pointerHeld = false; stopMining(); };
+const release = (e) => {
+  pointerHeld = false;
+  stopMining();
+  if (e?.pointerType && e.pointerType !== 'mouse') ndc.set(9, 9);
+};
 addEventListener('pointerup', release);
 addEventListener('pointercancel', release);
 addEventListener('blur', release);
