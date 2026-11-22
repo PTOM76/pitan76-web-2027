@@ -83,13 +83,19 @@ const featured = [];
 function makeBlock(work, i) {
   let mat;
   if (work?.thumb) {
-    mat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-    loader.load(work.thumb + '.jpg', (t) => {
-      t.colorSpace = THREE.SRGBColorSpace;
-      t.anisotropy = 4;
-      mat.map = t;
-      mat.needsUpdate = true;
+    // 画像が複数あれば 6 面に順番に貼る。1 枚なら全面同じ
+    const n = Math.max(1, work.faces || 1);
+    const mats = Array.from({ length: n }, (_, k) => {
+      const m = new THREE.MeshLambertMaterial({ color: 0xffffff });
+      loader.load(work.thumb + (k ? `-${k + 1}` : '') + '.jpg', (t) => {
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 4;
+        m.map = t;
+        m.needsUpdate = true;
+      });
+      return m;
     });
+    mat = n === 1 ? mats[0] : Array.from({ length: 6 }, (_, f) => mats[f % n]);
   } else if (work) {
     mat = new THREE.MeshLambertMaterial({ map: oreTexture(work.cat) });
   } else {

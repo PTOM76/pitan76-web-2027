@@ -76,9 +76,11 @@ function resize_png(string $src, string $dst, int $width): void {
 
 /**
  * 作品画像を取得し、ブロック用（正方形）とカード用（16:9）のサムネイルを作る。
- * 生成済みならキャッシュを使う。返り値は作品 ID => ファイル名。
+ * 2 枚目以降の画像（最大 6 枚目まで）はブロックの別の面に使うため、正方形のみ "ID-2.jpg" の形で保存する。
+ * 生成済みならキャッシュを使う。返り値は作品 ID => ファイル名。$faces には作品 ID => 画像の枚数を入れる。
  */
-function work_thumbs(array $works, string $cacheDir): array {
+function work_thumbs(array $works, string $cacheDir, ?array &$faces = null): array {
+    $faces = [];
     $dir = "$cacheDir/works";
     if (!is_dir($dir)) mkdir($dir, 0777, true);
     $ok = [];
@@ -98,6 +100,18 @@ function work_thumbs(array $works, string $cacheDir): array {
             imagejpeg(cover($img, 640, 360), $wide, 80);
         }
         $ok[$w['id']] = $id;
+        $n = 1;
+        foreach (array_slice($w['custom']['images'], 1, 5) as $extra) {
+            $file = "$dir/$id-" . ($n + 1) . '.jpg';
+            if (!is_file($file)) {
+                $raw = http_get($extra);
+                $img = $raw === null ? false : @imagecreatefromstring($raw);
+                if (!$img) break;
+                imagejpeg(cover($img, 256, 256), $file, 82);
+            }
+            $n++;
+        }
+        $faces[$w['id']] = $n;
     }
     return $ok;
 }
@@ -201,7 +215,7 @@ if (!is_dir($cacheDir)) mkdir($cacheDir, 0777, true);
 $site = json_data("$root/data/site.json");
 $projects = json_data("$root/data/projects.json");
 $works = fetch_works("$cacheDir/works.json", $dev);
-$thumbs = work_thumbs($works, $cacheDir);
+$thumbs = work_thumbs($works, $cacheDir, $faces);
 $icons = skill_icons($site['skills'], $cacheDir);
 
 foreach ($works as &$w) {
@@ -213,6 +227,9 @@ usort($works, static fn($a, $b) => strcmp($b['updateAt'] ?: $b['createAt'], $a['
 
 // テンプレートと JS で使う作品データ
 $featuredIds = array_column($projects, 'work');
+// 作品ごとの「つくった理由」。data/notes.json に 作品 ID => 文章 の形で書く
+$notes = is_file("$root/data/notes.json") ? json_data("$root/data/notes.json") : [];
+const LINK_LABELS = ['modparks' => 'ModParks', 'github' => 'GitHub', 'curseforge' => 'CurseForge', 'modrinth' => 'Modrinth', 'spigot' => 'Spigot', 'chrome' => 'Chrome Web Store'];
 $items = [];
 foreach ($works as $w) {
     $f = array_search($w['id'], $featuredIds, true);
@@ -227,6 +244,16 @@ foreach ($works as $w) {
         'url' => $w['site']['modparks'] ?? $w['url'] ?? $w['site']['github'] ?? '',
         'tags' => $w['tag'] ?? [],
         'thumb' => isset($thumbs[$w['id']]) ? "assets/works/{$thumbs[$w['id']]}" : null,
+        'faces' => $faces[$w['id']] ?? 0,
+        'created' => $w['createAt'],
+        'version' => $w['version'] ?? '',
+        'license' => $w['license'] ?? '',
+        'mc' => $w['custom']['mcversion'] ?? '',
+        'links' => array_values(array_filter(array_map(
+            static fn($k, $u) => is_string($u) && str_starts_with($u, 'http') ? ['label' => LINK_LABELS[$k] ?? ucfirst($k), 'url' => $u] : null,
+            array_keys($w['site'] ?? []), $w['site'] ?? []
+        ))),
+        'note' => $notes[$w['id']] ?? '',
         'featured' => $f === false ? null : $f,
     ];
 }
@@ -258,6 +285,7 @@ foreach (array_unique(array_merge(...array_values($icons ?: [[]]))) as $file) co
 foreach ($thumbs as $id) {
     copy("$cacheDir/works/$id.jpg", "$out/assets/works/$id.jpg");
     copy("$cacheDir/works/$id-w.jpg", "$out/assets/works/$id-w.jpg");
+    foreach (glob("$cacheDir/works/$id-[2-6].jpg") as $extra) copy($extra, "$out/assets/works/" . basename($extra));
 }
 
 ob_start();

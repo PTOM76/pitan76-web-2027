@@ -235,22 +235,48 @@
     ccmd.textContent = c.done;
     sound.transfer();
     showLoot(w);
-    await wait(900);
+    // カードを閉じるまで（最長 8 秒）その場に残る
+    const t0 = performance.now();
+    while (!loot.hidden && performance.now() - t0 < 8000) await wait(200);
+    await wait(1200);
     courier.classList.remove('show');
     delivering = false;
   }
   function showLoot(w) {
-    $('#loot-card').href = w.url || SITE.github;
     const img = $('#loot-img');
+    // 画像のない作品で前の作品の画像が残らないよう、毎回 src を消す
+    img.removeAttribute('src');
     img.hidden = !w.thumb;
     if (w.thumb) img.src = w.thumb + '-w.jpg';
     $('#loot-name').textContent = w.name;
     $('#loot-meta').textContent = [w.cat, w.year].filter(Boolean).join(' · ');
     $('#loot-desc').textContent = w.desc;
+    const note = $('#loot-note');
+    note.hidden = !w.note;
+    $('p', note).textContent = w.note || '';
+    // 詳細。値のない項目は出さない
+    const fmt = (d) => d ? d.replace(/\//g, '-') : '';
+    const spec = [
+      ['公開', fmt(w.created)], ['更新', w.updated ? fmt(w.date) : ''], ['バージョン', w.version],
+      ['対応 MC', w.mc], ['ライセンス', w.license],
+    ].filter(([, v]) => v);
+    $('#loot-spec').replaceChildren(...spec.flatMap(([k, v]) => {
+      const dt = document.createElement('dt'); dt.textContent = k;
+      const dd = document.createElement('dd'); dd.textContent = v;
+      return [dt, dd];
+    }));
+    $('#loot-tags').textContent = (w.tags || []).map((x) => '#' + x).join(' ');
+    const links = w.links?.length ? w.links : [{ label: '開く', url: w.url || SITE.github }];
+    $('#loot-links').replaceChildren(...links.map((l) => {
+      const a = document.createElement('a');
+      a.href = l.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label;
+      return a;
+    }));
     loot.hidden = false;
   }
   loot.addEventListener('click', (e) => { if (e.target === loot) loot.hidden = true; });
-  $('#loot-card').addEventListener('click', () => { loot.hidden = true; });
+  $('#loot-close').addEventListener('click', () => { loot.hidden = true; });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') loot.hidden = true; });
 
   const found = new Set();
   addEventListener('block-break', (e) => {

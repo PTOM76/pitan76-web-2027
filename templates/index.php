@@ -195,13 +195,18 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
 </div>
 
 <div class="loot" id="loot" hidden>
-  <a class="loot-card sk" id="loot-card" target="_blank" rel="noopener">
+  <div class="loot-card sk" id="loot-card" role="dialog" aria-labelledby="loot-name">
+    <button type="button" class="loot-close" id="loot-close" aria-label="閉じる">×</button>
     <img id="loot-img" alt="">
     <span class="loot-get">掘り当てた！</span>
     <b id="loot-name"></b>
     <small id="loot-meta"></small>
-    <span id="loot-desc"></span>
-  </a>
+    <p id="loot-desc"></p>
+    <div class="loot-note" id="loot-note" hidden><span>つくった理由</span><p></p></div>
+    <dl class="loot-spec" id="loot-spec"></dl>
+    <p class="loot-tags" id="loot-tags"></p>
+    <p class="loot-links" id="loot-links"></p>
+  </div>
 </div>
 
 <div class="terminal" id="terminal" hidden>
