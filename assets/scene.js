@@ -112,7 +112,6 @@ function makeBlock(work, i) {
     alive: 1,
     respawn: 0,
     hover: 0,
-    push: new THREE.Vector3(),
   };
   mesh.userData.block = b;
   blocks.push(b);
@@ -289,33 +288,21 @@ function tick() {
   if (hovered !== prevHover) dispatchEvent(new CustomEvent('block-hover', { detail: hovered ? { work: hovered.work } : null }));
   document.body.style.cursor = hovered ? 'crosshair' : '';
   updateMining(dt);
-  const mouseWorld = new THREE.Vector3();
 
   for (const b of blocks) {
-    // 視差付きでページと一緒に流れる
+    // ブロックごとの時間。カーソルが乗っている間は止めて、掘りやすくする
+    if (hovered !== b && !reduced) b.t = (b.t ?? 0) + dt;
+    const bt = b.t ?? 0;
+
+    // 視差付きでページと一緒に流れる（マウスの位置では動かさない）
     const depth = (CAM_Z - b.z) / CAM_Z;        // 1〜2
     const parallax = 0.25 + 0.55 / depth;
     const span = docH * parallax + innerHeight * 1.4;
     let sy = b.py * span - scrollY * parallax - innerHeight * 0.2;
     sy = ((sy % span) + span) % span - innerHeight * 0.2;
     const hz = viewHeightAt(b.z);
-    home.set(b.px * hz * camera.aspect * 0.5 + mouse.x * (1.5 / depth), -(sy / vh() - 0.5) * hz - mouse.y * (1 / depth), b.z);
-    home.y += Math.sin(t * 0.7 + b.phase) * 0.25;
-
-    // カーソルの近くのブロックは少し逃げる（採掘中のブロックは除く）
-    screenToWorld((mouseTarget.x + 0.5) * innerWidth, (mouseTarget.y + 0.5) * innerHeight, b.z, mouseWorld);
-    const dxm = home.x - mouseWorld.x;
-    const dym = home.y - mouseWorld.y;
-    const dist = Math.hypot(dxm, dym);
-    const reach = 2.2;
-    if (dist < reach && dist > 0.001 && mining?.b !== b && !reduced) {
-      const f = (reach - dist) / reach * 0.9;
-      b.push.x += ((dxm / dist) * f - b.push.x) * 0.08;
-      b.push.y += ((dym / dist) * f - b.push.y) * 0.08;
-    } else {
-      b.push.multiplyScalar(0.94);
-    }
-    home.add(b.push);
+    home.set(b.px * hz * camera.aspect * 0.5, -(sy / vh() - 0.5) * hz, b.z);
+    home.y += Math.sin(bt * 0.7 + b.phase) * 0.25;
 
     const base = b.size * Math.min(1, camera.aspect * 0.9);   // 縦長画面では小さくする
     let scale = base;
@@ -351,8 +338,8 @@ function tick() {
     b.mesh.position.copy(home);
 
     const sp = bug ? 10 : 1;
-    const idleX = b.rot.x + t * b.spin * sp;
-    const idleY = b.rot.y + t * b.spin * 0.8 * sp;
+    const idleX = b.rot.x + bt * b.spin * sp;
+    const idleY = b.rot.y + bt * b.spin * 0.8 * sp;
     // 代表作は枠に入ると正面寄りの角度でゆっくり回る
     const showX = -0.42 + mouse.y * 0.4;
     const showY = 0.7 + Math.sin(t * 0.5) * 0.25 + mouse.x * 0.6;

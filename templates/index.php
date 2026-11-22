@@ -1,8 +1,17 @@
 <?php
-/** @var array $site @var array $projects @var array $items */
+/** @var array $site @var array $projects @var array $items @var array $icons */
 $cats = array_count_values(array_column($items, 'cat'));
 arsort($cats);
-$recent = array_slice(array_values(array_filter($items, static fn($w) => $w['date'] !== '')), 0, 6);
+$log = [];
+foreach ($items as $w) {
+    if ($w['date'] === '') continue;
+    $key = $w['date'] . ($w['updated'] ? 'u' : 'n');
+    if (!isset($log[$key])) {
+        if (count($log) >= 4) break;
+        $log[$key] = ['date' => $w['date'], 'updated' => $w['updated'], 'works' => []];
+    }
+    $log[$key]['works'][] = $w;
+}
 $ach = array_column($site['achievements'], 'value', 'label');
 $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
 ?><!doctype html>
@@ -16,7 +25,10 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
 <meta property="og:description" content="<?= h($site['description']) ?>">
 <meta property="og:image" content="assets/img/pitan.png">
 <meta name="theme-color" content="#dcecfa">
-<link rel="icon" href="assets/img/favicon.png">
+<link rel="icon" href="assets/img/favicon-32.png" sizes="32x32">
+<link rel="icon" href="assets/img/favicon.png" sizes="64x64">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<meta property="og:site_name" content="<?= h($site['title']) ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;700;900&display=swap" rel="stylesheet">
@@ -33,12 +45,12 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
 <canvas id="scene" aria-hidden="true"></canvas>
 
 <header class="bar">
-  <a class="bar-logo" href="#top"><img src="assets/img/favicon.png" alt="" width="26" height="26">ぴたん</a>
+  <a class="bar-logo" href="#top"><img src="assets/img/favicon.png" alt="" width="26" height="26"><?= h($site['title']) ?></a>
   <p class="bar-coords" aria-hidden="true" title="スクロール位置">Y: <span id="coord-y">0</span></p>
   <nav>
     <a href="#works">代表作</a>
     <a href="#index">作品一覧</a>
-    <a href="#inventory">技術</a>
+    <a href="#inventory">技術スタック</a>
     <a href="#log">これまで</a>
   </nav>
   <button class="bar-sound" type="button" id="sound" aria-pressed="true" title="効果音">♪ ON</button>
@@ -53,26 +65,23 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
       <p class="hero-facts">
         Minecraft Modは<b class="num"><?= $num('Minecraft Mod 開発作品') ?></b>作以上つくり、ダウンロード数は合計<b class="num"><?= $num('Minecraft Mod 累計ダウンロード') ?></b>回を超えました。WikiChree.COMでは<b class="num"><?= $num('WikiChree.COM 運営Wiki') ?></b>のWikiが動いています。
       </p>
+      <?php if ($log): ?>
+      <ol class="chatlog" aria-label="最近の更新">
+        <?php foreach ($log as $e): $first = $e['works'][0]; $more = count($e['works']) - 1; ?>
+          <li><time datetime="<?= h($e['date']) ?>">[<?= h(date('n/j', strtotime($e['date']))) ?>]</time> <a href="<?= h($first['url'] ?: '#') ?>" target="_blank" rel="noopener"><?= h($first['name']) ?></a><?php if ($more): ?> ほか<?= $more ?>件<?php endif; ?>を<?= $e['updated'] ? '更新' : '公開' ?>しました</li>
+        <?php endforeach; ?>
+      </ol>
+      <?php endif; ?>
       <p class="hero-hint">背景のブロックは長押しで掘れます。色の粒が入ったブロックや絵の付いたブロックには、作品が埋まっています。</p>
     </div>
     <div class="hero-sticker">
       <button class="sticker" type="button" id="pitan" aria-label="ぴたんをなでる">
-        <img src="assets/img/pitan.png" alt="ぴたん" width="640" height="640">
+        <img src="assets/img/pitan.png" alt="ぴたん" width="640" height="640" draggable="false">
       </button>
       <p class="say sk" id="pitan-say" role="status"></p>
     </div>
   </section>
 
-  <?php if ($recent): ?>
-  <section class="recent" aria-labelledby="recent-h">
-    <h2 id="recent-h">最近いじったもの</h2>
-    <ul class="sk">
-      <?php foreach ($recent as $w): ?>
-        <li><a href="<?= h($w['url'] ?: '#') ?>" target="_blank" rel="noopener"><time datetime="<?= h($w['date']) ?>"><?= h(date('n/j', strtotime($w['date']))) ?></time><b><?= h($w['name']) ?></b><span><?= $w['updated'] ? '更新' : '公開' ?></span></a></li>
-      <?php endforeach; ?>
-    </ul>
-  </section>
-  <?php endif; ?>
 
   <section class="section" id="works">
     <h2 class="sec-title">代表作</h2>
@@ -130,12 +139,23 @@ $num = static fn(string $label): string => h(rtrim($ach[$label] ?? '', '+'));
   <?php endif; ?>
 
   <section class="section" id="inventory">
-    <h2 class="sec-title">使える技術</h2>
+    <h2 class="sec-title">技術スタック</h2>
     <div class="inventory">
       <?php foreach ($site['skills'] as $g): ?>
         <div class="inv sk">
           <h3 class="inv-label"><?= h(['LANGUAGES' => '言語', 'WEB' => 'Web', 'INFRASTRUCTURE' => 'インフラ', 'OTHER' => 'そのほか'][$g['name']] ?? $g['name']) ?></h3>
-          <ul><?php foreach ($g['items'] as $it): ?><li class="slot" tabindex="0"><?= h($it) ?></li><?php endforeach; ?></ul>
+          <ul>
+            <?php foreach ($g['items'] as $it): $ic = $icons[$it] ?? null; ?>
+              <li class="slot" tabindex="0">
+                <?php if ($ic): ?>
+                  <svg class="slot-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="#<?= h($ic['hex']) ?>" d="<?= h($ic['path']) ?>"/></svg>
+                <?php else: ?>
+                  <span class="slot-mark" aria-hidden="true"><?= h(mb_substr(preg_replace('/[^A-Za-z0-9#]/', '', $it), 0, 2)) ?></span>
+                <?php endif; ?>
+                <span class="slot-name"><?= h($it) ?></span>
+              </li>
+            <?php endforeach; ?>
+          </ul>
         </div>
       <?php endforeach; ?>
     </div>

@@ -100,6 +100,7 @@
   let dragged = false;
   pitan.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
+    e.preventDefault();   // 文字選択と画像の標準ドラッグを止める
     drag = { x: e.clientX, y: e.clientY };
     dragged = false;
     pitan.setPointerCapture(e.pointerId);
@@ -404,7 +405,7 @@
   /* ---------- その他 ---------- */
   const title = document.title;
   document.addEventListener('visibilitychange', () => {
-    document.title = document.hidden ? 'Connection: keep-alive…' : title;
+    document.title = document.hidden ? "Connection: keep-alive… | " + title : title;
   });
   console.log('%cPITAN.76', 'font: 40px monospace; background: #161514; color: #ffad0a; padding: 4px 12px');
   console.log('↑↑↓↓←→←→BA');
