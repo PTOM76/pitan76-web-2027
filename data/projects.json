@@ -1,6 +1,6 @@
 [
   {
-    "name": "WikiChree",
+    "name": "WikiChree.COM",
     "category": "WEB SERVICE",
     "summary": "PukiWikiをベースにしたWikiホスティングサービス。",
     "detail": "WikiFarmとして複数のWikiを運営できるサービス。PukiWikiに加え、DokuWiki系エンジンにも対応。",
