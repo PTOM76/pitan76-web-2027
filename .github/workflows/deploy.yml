@@ -19,12 +19,16 @@ jobs:
         with:
           php-version: '8.3'
           extensions: gd
-      - name: Validate JSON
-        run: |
-          php -r 'json_decode(file_get_contents("data/site.json"), true, 512, JSON_THROW_ON_ERROR);'
-          php -r 'json_decode(file_get_contents("data/projects.json"), true, 512, JSON_THROW_ON_ERROR);'
+      - name: Check PHP syntax
+        run: for f in build.php src/*.php templates/*.php templates/partials/*.php; do php -l "$f"; done
+      - id: pages
+        uses: actions/configure-pages@v5
+      # data/ の検証もビルドの中で行う。公開先のパスと URL は Pages の設定から渡す
       - name: Generate static site
         run: php build.php
+        env:
+          PITAN_BASE: ${{ steps.pages.outputs.base_path }}/
+          PITAN_URL: ${{ steps.pages.outputs.base_url }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist

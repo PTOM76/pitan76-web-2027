@@ -1,12 +1,13 @@
 {
-  "name": "pitan76-web-2027",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "node scripts/dev.mjs",
-    "build": "php build.php"
-  },
-  "engines": {
-    "node": ">=20.11"
-  }
+    "name": "pitan76-web-2027",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "node scripts/dev.mjs",
+        "build": "php build.php",
+        "check": "node scripts/check.mjs"
+    },
+    "engines": {
+        "node": ">=20.11"
+    }
 }

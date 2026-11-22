@@ -400,3 +400,4 @@ body.collapsed main > *, body.collapsed .footer {
 .nf-res h1 { font: 400 56px/1 var(--dot); margin: 0 0 8px; }
 .nf-res pre { margin: 0 0 12px; }
 .nf-res a { display: inline-block; background: var(--eye); border: 2px solid var(--ink); padding: 4px 12px; color: var(--on); text-decoration: none; font-weight: 700; }
+.loot-links a.loot-page { background: var(--panel); color: var(--ink); }

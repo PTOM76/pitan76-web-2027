@@ -212,27 +212,26 @@
 
 
   /* ---------- ブロック破壊 → FTPちゃん / HTTPちゃんが作品を届ける ---------- */
-  const couriers = {
-    ftp: { name: 'FTPプロトコルさん', proto: 'FTP / File Transfer Protocol', desc: 'ファイルの転送を担当する。サーバーへのアップロードやダウンロードで作品を届ける。', img: 'assets/img/ftp.png', start: (f) => `STOR ${f}.dat`, done: '226 Transfer complete' },
-    http: { name: 'HTTPプロトコルさん', proto: 'HTTP / Hypertext Transfer Protocol', desc: 'Webページの配送を担当する。リクエストを受け取り、レスポンスとして作品を届ける。見つからないときは 404 を返す。', img: 'assets/img/http.png', start: (f) => `GET /works/${f} HTTP/1.1`, done: 'HTTP/1.1 200 OK' },
-    smtp: { name: 'SMTPプロトコルさん', proto: 'SMTP / Simple Mail Transfer Protocol', desc: 'メールの配送を担当する。宛先を確かめてから、作品をメールに載せて届ける。', img: 'assets/img/smtp.png', start: (f) => `DATA ${f}.eml`, done: '250 OK: queued' },
-  };
-  for (const [k, c] of Object.entries(couriers)) c.key = k;
+  // キャラクターの設定は data/characters.json。{file} は作品のファイル名に置き換える
+  const couriers = Object.fromEntries(Object.entries(SITE.characters).map(([key, c]) => [key, {
+    ...c, key, img: `assets/img/${key}.png`, start: (f) => c.start.replace('{file}', f),
+  }]));
+  const keys = Object.keys(couriers);
+  // 作品のカテゴリを担当するキャラ（characters.json の categories）。いなければ全員からランダム
+  const courierFor = (w) => keys.find((k) => couriers[k].categories?.includes(w.cat)) || keys[(Math.random() * keys.length) | 0];
   const courier = $('#courier');
   const courierImg = $('img', courier);
   const ccmd = $('#courier-cmd');
   const cbar = $('#courier-bar');
   const loot = $('#loot');
   let delivering = false;
-  let current = couriers.ftp;
+  let current = couriers[keys[0]];
   let pending = null;
   async function deliver(w, kind) {
     if (delivering) { pending = w; return; }
     delivering = true;
     const file = (w.id || 'item').replace(/[^a-z0-9_-]/gi, '-');
-    // Web 系の作品は HTTPプロトコルさん、それ以外は 3 人からランダム
-    const pick = ['ftp', 'http', 'smtp'][(Math.random() * 3) | 0];
-    const c = couriers[kind || (w.cat === 'Web' || w.cat === 'Extension' ? 'http' : pick)];
+    const c = couriers[kind || courierFor(w)];
     courierImg.src = c.img;
     current = c;
     ccmd.textContent = c.start(file);
@@ -304,6 +303,10 @@
       a.href = l.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label;
       return a;
     }));
+    // サイト内の詳細ページ（PHP で作品ごとに生成している）
+    const more = document.createElement('a');
+    more.href = w.page; more.className = 'loot-page'; more.textContent = '詳細ページ';
+    $('#loot-links').append(more);
     loot.hidden = false;
   }
   loot.addEventListener('click', (e) => { if (e.target === loot) loot.hidden = true; });
