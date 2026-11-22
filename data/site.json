@@ -1,8 +1,8 @@
 {
   "title": "Pitan — Portfolio",
   "author": "Pitan",
-  "description": "Pitanの制作物・開発プロジェクト。",
-  "lead": "Software / Web / Open Source",
+  "description": "Pitanの制作物と開発プロジェクト。",
+  "lead": "Bug-Creator のぴたんです。MODやWebなどを開発している、技術系が好きな機械弱者。",
   "links": {
     "github": "https://github.com/PTOM76",
     "social": "https://x.com/PitaQ_Modding",
@@ -19,7 +19,7 @@
       "name": "ITパスポート試験"
     },
     {
-      "name": "運転免許"
+      "name": "普通自動車第一種運転免許（MT）"
     }
   ],
   "skills": [
