@@ -72,20 +72,35 @@ function resized(string $src, string $dst, int $size): void {
     imagepng($res, $dst, 9);
 }
 
-/** works-info の作品一覧を取得する。取得できない場合は空配列。 */
-function fetch_works(): array {
+/**
+ * works-info の作品一覧を取得する。
+ * 開発時（PITAN_DEV=1）はキャッシュを優先し、取得に失敗した場合もキャッシュを利用する。
+ */
+function fetch_works(string $cache): array {
+    if (getenv('PITAN_DEV') && is_file($cache)) return json_data($cache);
     $ctx = stream_context_create(['http' => ['timeout' => 15, 'header' => "User-Agent: pitan76-web-build\r\n"]]);
     $raw = @file_get_contents(WORKS_URL, false, $ctx);
     if ($raw === false) {
         fwrite(STDERR, "warning: works-info could not be fetched\n");
-        return [];
+        return is_file($cache) ? json_data($cache) : [];
     }
+    file_put_contents($cache, $raw);
     return json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+}
+
+/** 変換結果をキャッシュし、元画像が更新されたときだけ再生成する。 */
+function cached(string $src, string $name, callable $make): string {
+    global $cacheDir;
+    $dst = "$cacheDir/$name";
+    if (!is_file($dst) || filemtime($dst) < filemtime($src)) $make($src, $dst);
+    return $dst;
 }
 
 $site = json_data("$root/data/site.json");
 $projects = json_data("$root/data/projects.json");
-$works = fetch_works();
+$cacheDir = "$root/.cache";
+if (!is_dir($cacheDir)) mkdir($cacheDir, 0777, true);
+$works = fetch_works("$cacheDir/works.json");
 
 $categoryLabels = [
     'mcmod' => 'Minecraft Mod', 'web' => 'Web', 'app' => 'App', 'pukiwiki' => 'PukiWiki',
@@ -107,11 +122,15 @@ if (is_dir($out)) {
 }
 mkdir("$out/assets/img", 0777, true);
 foreach (['style.css', 'main.js', 'scene.js'] as $f) copy("$root/assets/$f", "$out/assets/$f");
-cutout("$root/assets/img/pitan.png", "$out/assets/img/pitan-cut.png", 640);
-cutout("$root/assets/img/ftp.png", "$out/assets/img/ftp.png", 480);
-cutout("$root/assets/img/http.png", "$out/assets/img/http.png", 480);
-resized("$root/assets/img/pitan.png", "$out/assets/img/pitan.png", 480);
-resized("$root/assets/img/pitan.png", "$out/assets/img/favicon.png", 64);
+$img = "$root/assets/img";
+$images = [
+    'pitan-cut.png' => cached("$img/pitan.png", 'pitan-cut.png', fn($s, $d) => cutout($s, $d, 640)),
+    'ftp.png' => cached("$img/ftp.png", 'ftp.png', fn($s, $d) => cutout($s, $d, 480)),
+    'http.png' => cached("$img/http.png", 'http.png', fn($s, $d) => cutout($s, $d, 480)),
+    'pitan.png' => cached("$img/pitan.png", 'pitan.png', fn($s, $d) => resized($s, $d, 480)),
+    'favicon.png' => cached("$img/pitan.png", 'favicon.png', fn($s, $d) => resized($s, $d, 64)),
+];
+foreach ($images as $name => $path) copy($path, "$out/assets/img/$name");
 
 ob_start();
 require "$root/templates/index.php";

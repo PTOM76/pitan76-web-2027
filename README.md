@@ -1,3 +1,5 @@
+AIでどれだけおもろい個人サイトつくれるかのべんちまくく、マクド
+
 # Pitan Portfolio 2027
 
 PHP templates + JSON data → static HTML. PHP runs only during the build; the published site contains no PHP runtime.
