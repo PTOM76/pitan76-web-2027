@@ -1,14 +1,11 @@
 # Pitan Portfolio 2027
-
 PHPでビルドする静的サイト。PHPはビルド時のみ実行し、公開するサイトにPHPの実行環境は含まない。背景の3D表現にはThree.jsを使用する。
 
 ## 必要環境
-
 - PHP 8.3以上（GD拡張が必要）
-- Node.js 20.11以上（開発サーバーを使用する場合のみ）
+- Node.js 20.11以上（開発サーバを使用する場合のみ）
 
 ## 開発
-
 ```sh
 npm run dev
 ```
@@ -69,6 +66,4 @@ GitHub Actionsでは `PITAN_BASE` と `PITAN_URL` をGitHub Pagesの設定から
 
 ## デプロイ
 
-`main` へのpushでGitHub Actionsがビルドし、`dist/` をGitHub Pagesへデプロイする。リポジトリ設定のGitHub Pagesで、ソースに **GitHub Actions** を指定する。
-
-公開するのはPitan名義の情報と作品のみとする。本名での活動、個人を特定できる情報、匿名と実名の活動を結び付けるリンクは追加しない。
+`main` へのpushでGitHub Actionsがビルドし、`dist/` をGitHub Pagesへデプロイする。リポジトリ設定のGitHub Pagesで、ソースに GitHub Actions を指定する。
