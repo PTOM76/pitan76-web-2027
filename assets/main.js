@@ -63,6 +63,20 @@
       transfer: () => play('transfer', 0.6),
       achieve: () => play('achieve', 0.7),
       boing: () => play('boing', 0.8),
+      // 音符ブロック。ド（C5）から 1 オクターブのドレミファソラシド
+      note(step) {
+        const a = ac(); if (!a) return;
+        const semitone = [0, 2, 4, 5, 7, 9, 11, 12][step] ?? 0;
+        const o = a.createOscillator();
+        const g = a.createGain();
+        o.type = 'square';
+        o.frequency.value = 523.25 * 2 ** (semitone / 12);
+        g.gain.setValueAtTime(0.18, a.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.35);
+        o.connect(g).connect(out);
+        o.start();
+        o.stop(a.currentTime + 0.36);
+      },
     };
   })();
   const soundBtn = $('#sound');
@@ -282,16 +296,17 @@
   }
   // 配達中のキャラをタップすると紹介カードを開く
   const chara = $('#chara');
-  $('#courier-btn').addEventListener('click', () => {
-    $('#chara-img').src = current.img;
-    $('#chara-name').textContent = current.name;
-    $('#chara-proto').textContent = current.proto;
-    $('#chara-desc').textContent = current.desc;
+  function showChara(c) {
+    $('#chara-img').src = c.img;
+    $('#chara-name').textContent = c.name;
+    $('#chara-proto').textContent = c.proto;
+    $('#chara-desc').textContent = c.desc;
     chara.hidden = false;
     $('#chara-close').focus({ preventScroll: true });
     sound.blip();
-    achieve('chara-' + current.key, current.name + 'に会った', 'envelope');
-  });
+    achieve('chara-' + c.key, c.name + 'に会った', 'envelope');
+  }
+  $('#courier-btn').addEventListener('click', () => showChara(current));
   $('#chara-close').addEventListener('click', () => { chara.hidden = true; });
   chara.addEventListener('click', (e) => { if (e.target === chara) chara.hidden = true; });
 
@@ -392,15 +407,52 @@
   }
 
   addEventListener('block-break', (e) => {
-    const { count, work } = e.detail;
-    sound.breaks();
+    const { count, work, kind, chain } = e.detail;
+    if (!chain) sound.breaks();   // 爆発に巻き込まれたブロックの音は、爆発の音にまとめる
     if (work) {
       register(work);
       deliver(work);
     }
+    if (kind === 'lucky') lucky();
     if (count === 1) achieve('mine1', 'はじめてのブロック破壊', 'person-digging');
     if (count === 20) achieve('mine20', 'ブロックを20個壊した', 'gem');
   });
+
+  /* ---------- 特別なブロック（TNT・音符・ラッキー） ---------- */
+  addEventListener('tnt-prime', () => sound.hit());
+  addEventListener('block-explode', (e) => {
+    sound.breaks();
+    setTimeout(() => sound.breaks(), 90);
+    achieve('tnt', 'TNT で爆破した', 'bomb');
+    if (e.detail.count >= 5) achieve('tnt5', '一度に 5 個のブロックを吹き飛ばした', 'burst');
+  });
+  addEventListener('note-play', (e) => {
+    sound.note(e.detail.pitch);
+    if (e.detail.pitch === 7) achieve('scale', 'ドレミファソラシドを鳴らした', 'music');
+  });
+  // ラッキーブロック。未発見の作品・キャラクターの訪問・ブロックの雨のどれかが起きる
+  function lucky() {
+    achieve('lucky', 'ラッキーブロックを開けた', 'clover');
+    const fresh = SITE.works.filter((w) => !found.has(w.id));
+    const outcomes = [
+      ...(fresh.length ? [() => {
+        const w = fresh[Math.floor(Math.random() * fresh.length)];
+        toast('ラッキー！', `未発見の作品「${w.name}」が出てきた`, 'clover');
+        register(w);
+        deliver(w);
+      }] : []),
+      () => {
+        const c = couriers[keys[Math.floor(Math.random() * keys.length)]];
+        toast('ラッキー！', `${c.name}が遊びに来た`, 'clover');
+        showChara(c);
+      },
+      () => {
+        toast('ラッキー！', 'ブロックの雨が降ってきた', 'clover');
+        dispatchEvent(new CustomEvent('block-rain'));
+      },
+    ];
+    outcomes[Math.floor(Math.random() * outcomes.length)]();
+  }
 
   /* ---------- 昼と夜（自動 / 昼 / 夜） ---------- */
   const themeBtn = $('#theme');
@@ -455,8 +507,13 @@
     const d = e.detail;
     clearTimeout(tipTimer);
     if (!d) { tip.classList.remove('show'); return; }
-    tip.classList.toggle('has-work', !!d.work);
-    tip.innerHTML = d.work ? `<b>${icon('gem')} 作品入り</b><span>${esc(d.work.cat)}</span>` : '<b>ただのブロック</b>';
+    tip.classList.toggle('has-work', !!d.work || d.kind === 'mystery');
+    tip.innerHTML = {
+      tnt: `<b>${icon('bomb')} TNT</b><span>掘ると爆発する</span>`,
+      note: `<b>${icon('music')} 音符ブロック</b><span>クリックで鳴る</span>`,
+      lucky: `<b>${icon('clover')} ラッキーブロック</b><span>何かが起きる</span>`,
+      mystery: `<b>${icon('gem')} 何かの作品入り</b><span>掘るまで中身はわからない</span>`,
+    }[d.kind] ?? (d.work ? `<b>${icon('gem')} 作品入り</b><span>${esc(d.work.cat)}</span>` : '<b>ただのブロック</b>');
     tip.classList.add('show');
     // 操作の案内は、しばらく合わせたままのときだけ足す
     tipTimer = setTimeout(() => {

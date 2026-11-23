@@ -131,3 +131,33 @@ test('ターミナルの find で、日本語の作品名でも列がそろう',
     expect(width(l.slice(0, -(cat.length + 1))), l).toBe(30);
   }
 });
+
+test('特別なブロックがあり、画像もアイコンもない作品は専用のブロックを持たない', async ({ page }) => {
+  await open(page, {}, true);
+  const { kinds, plain, works } = await page.evaluate(() => ({
+    kinds: window.__scene.kinds(), plain: window.__scene.plainWorks(), works: window.SITE.works,
+  }));
+  for (const k of ['tnt', 'note', 'lucky']) expect(kinds[k], k).toBeGreaterThan(0);
+  expect(kinds.work).toBe(works.length - plain.length);
+  if (plain.length) expect(kinds.mystery).toBeGreaterThan(0);
+  const plainSet = new Set(plain);
+  expect(works.filter((w) => plainSet.has(w.id)).every((w) => !w.thumb && !w.icon)).toBe(true);
+});
+
+test('ラッキーブロックを壊すと何かが起きる', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => dispatchEvent(new CustomEvent('block-break', { detail: { count: 1, work: null, kind: 'lucky', chain: false } })));
+  await expect(page.locator('.toast', { hasText: 'ラッキー！' })).toHaveCount(1);
+  await expect(page.locator('.toast', { hasText: 'ラッキーブロックを開けた' })).toHaveCount(1);
+});
+
+test('音符ブロックでドまで鳴らすと実績、TNT の爆発でも実績が出る', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => {
+    for (let p = 0; p < 8; p++) dispatchEvent(new CustomEvent('note-play', { detail: { pitch: p } }));
+    dispatchEvent(new CustomEvent('block-explode', { detail: { count: 6 } }));
+  });
+  await expect(page.locator('.toast', { hasText: 'ドレミファソラシドを鳴らした' })).toHaveCount(1);
+  await expect(page.locator('.toast', { hasText: 'TNT で爆破した' })).toHaveCount(1);
+  await expect(page.locator('.toast', { hasText: '一度に 5 個のブロックを吹き飛ばした' })).toHaveCount(1);
+});
