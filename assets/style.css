@@ -51,24 +51,34 @@ main, .footer { position: relative; z-index: 2; }
 
 /* ---------- bar ---------- */
 .bar {
-  position: sticky; top: 0; z-index: 30; display: flex; align-items: center;
+  position: sticky; top: 0; z-index: 30; display: flex; align-items: stretch;
   height: 50px; padding-left: var(--pad); background: var(--panel); border-bottom: 2px solid var(--ink);
 }
-.bar-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; font: 400 17px var(--dot); white-space: nowrap; }
+.bar-logo { align-self: center; display: flex; align-items: center; gap: 8px; text-decoration: none; font: 400 17px var(--dot); white-space: nowrap; }
 .bar-logo img { image-rendering: pixelated; }
+.bar-coords { align-self: center; margin: 0 0 0 14px; padding-left: 14px; border-left: 1px solid var(--ink-2); font: 12px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 
-.bar-coords { margin: 0 0 0 14px; padding-left: 14px; border-left: 1px solid var(--ink-2); font: 12px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.bar nav { display: flex; margin-left: auto; height: 100%; }
-.bar nav a { display: grid; place-items: center; padding: 0 16px; text-decoration: none; font-weight: 700; font-size: 14px; border-left: 2px solid var(--ink); }
-.bar nav a:last-child { border-right: 2px solid var(--ink); }
-.bar nav a:hover { background: var(--hair); }
-.bar-sound, .bar-term { height: 100%; border: 0; border-left: 2px solid var(--ink); cursor: pointer; font: 700 12px var(--mono); }
-.bar-sound { padding: 0 14px; background: var(--panel); min-width: 76px; }
-.bar-sound:hover { background: var(--ear); }
-.bar-sound[aria-pressed="false"] { color: var(--ink-2); }
-.bar-term { padding: 0 18px; background: var(--eye); }
-.bar-term:hover { background: var(--ink); color: var(--eye); }
-@media (max-width: 760px) { .bar nav, .bar-coords { display: none; } .bar-sound { margin-left: auto; } }
+/* ナビ。今見ているセクションと、カーソルを乗せた項目に差し色の下線を付ける */
+.bar-nav { display: flex; margin-left: auto; }
+.bar-nav a { display: flex; align-items: center; gap: 8px; padding: 0 16px; border-left: 2px solid var(--ink); text-decoration: none; font-weight: 700; font-size: 14px; white-space: nowrap; transition: box-shadow .15s, background-color .15s; }
+.bar-nav a:last-child { border-right: 2px solid var(--ink); }
+.bar-nav a i { font-size: 13px; color: var(--ink-2); transition: color .15s; }
+.bar-nav a:hover { background: var(--hair); color: var(--on); }
+.bar-nav a:hover i { color: var(--on); }
+.bar-nav a:hover, .bar-nav a[aria-current] { box-shadow: inset 0 -4px 0 var(--eye); }
+.bar-nav a[aria-current] i { color: var(--eye); }
+
+/* 右端のボタン。どれも同じ幅の正方形のアイコンにそろえる */
+.bar-tools { display: flex; }
+.bar-tools button { width: 50px; display: grid; place-items: center; padding: 0; border: 0; border-left: 2px solid var(--ink); background: var(--panel); color: var(--ink); font-size: 17px; cursor: pointer; transition: background-color .15s, color .15s; }
+.bar-tools button:hover { background: var(--hair); color: var(--on); }
+.bar-tools .bar-dex:hover { background: var(--eye); }
+.bar-tools .bar-sound[aria-pressed="false"] { color: var(--ink-2); }
+.bar-tools .bar-term { background: var(--eye); color: var(--on); }
+.bar-tools .bar-term:hover { background: var(--ink); color: var(--eye); }
+.bar-nav + .bar-tools button:first-child { border-left: 0; }
+@media (max-width: 760px) { .bar-nav, .bar-coords { display: none; } .bar-tools { margin-left: auto; } }
+@media (max-width: 600px) { .bar-tools button { width: 44px; font-size: 15px; } }
 
 /* ---------- hero ---------- */
 .hero {
@@ -228,7 +238,11 @@ body.gl .work-slot img { visibility: hidden; }
 /* ---------- footer ---------- */
 .footer { margin-top: 80px; padding: 18px var(--pad); background: var(--panel); border-top: 2px solid var(--ink); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; font-size: 13px; }
 .footer a { font-weight: 700; }
+.footer-links { display: flex; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.footer-links a { display: block; padding: 2px; color: var(--ink); font-size: 20px; line-height: 1; text-decoration: none; transition: color .15s; }
+.footer-links a:hover { color: var(--hair-deep); }
 .footer p { margin: 0; color: var(--ink-2); }
+.footer p a { font-weight: 400; color: inherit; }
 .footer-hint { margin-left: auto !important; }
 kbd { font: 12px var(--mono); border: 1px solid currentColor; border-radius: 3px; padding: 0 5px; }
 
@@ -329,7 +343,6 @@ body.bug .ht-en { animation: glitch .25s steps(2) infinite; }
 
 /* ---------- スマホ ---------- */
 @media (max-width: 600px) {
-  .bar-sound { min-width: 0; padding: 0 10px; }
   .chatlog { font-size: 13px; max-width: 100%; }
   .chatlog li { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .index a { padding: 8px 12px; font-size: 13px; }
@@ -366,17 +379,10 @@ html[data-theme="dark"] .chatlog li { background: rgba(0, 0, 0, .6); }
 html[data-theme="dark"] .ht-en { color: var(--ink); -webkit-text-stroke-color: #000; text-shadow: 6px 7px 0 var(--hair-deep); }
 /* 数字の帯は文字の下半分にしかかからず明るい文字が読みにくいため、夜は帯をなくして文字を黄色にする */
 html[data-theme="dark"] .hero-facts .num { color: var(--eye); background: none; }
-::selection, .bar nav a:hover, .bar-sound:hover, .bar-theme:hover, .bar-dex:hover, .bar-term, .index a:hover, .block-tip.has-work,
+::selection, .index a:hover, .block-tip.has-work,
 .loot-get, .loot-links a, .work-links a:first-child, .loot-close:hover, .term-bar button, .filter:hover, .index-more { color: var(--on); }
 body { transition: background-color .4s; }
 
-/* ---------- テーマ・図鑑のボタン ---------- */
-.bar-theme, .bar-dex { height: 100%; border: 0; border-left: 2px solid var(--ink); background: var(--panel); cursor: pointer; padding: 0 14px; font: 400 13px var(--dot); white-space: nowrap; }
-.bar-theme:hover { background: var(--hair); }
-.bar-dex:hover { background: var(--eye); }
-.bar-dex { margin-left: auto; }
-@media (max-width: 760px) { .bar-dex { margin-left: auto; } .bar-sound { margin-left: 0; } }
-@media (max-width: 600px) { .bar-theme, .bar-dex { padding: 0 8px; font-size: 12px; } }
 
 /* ---------- 作品図鑑 ---------- */
 .dex { position: fixed; inset: 0; z-index: 44; display: grid; place-items: center; background: rgba(43, 23, 16, .35); padding: 16px; }

@@ -29,6 +29,7 @@ $large = $image === 'assets/img/og.png' || str_ends_with($image, '-w.jpg');
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/fontawesome.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/solid.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/brands.min.css">
 <link rel="stylesheet" href="<?= h(asset('assets/style.css')) ?>">
 <script>
 // 表示前にテーマを決め、ちらつきを防ぐ。auto は 6〜18 時を昼、それ以外を夜にする

@@ -61,6 +61,14 @@ final class View {
     }
 }
 
+/** site.json の links のキー => [表示名, Font Awesome のブランドロゴ]。 */
+const SOCIAL_LINKS = [
+    'github' => ['GitHub', 'github'],
+    'twitter' => ['X (Twitter)', 'x-twitter'],
+    'youtube' => ['YouTube', 'youtube'],
+    'tumblr' => ['Tumblr', 'tumblr'],
+];
+
 /** templates/partials/$name.php を描画する。テンプレートの中で使う。 */
 function partial(string $name, array $vars = []): string {
     return View::current()->render("partials/$name", $vars);

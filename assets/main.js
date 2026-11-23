@@ -66,7 +66,7 @@
     };
   })();
   const soundBtn = $('#sound');
-  const paintSound = () => { soundBtn.innerHTML = sound.on ? `${icon('volume-high')} ON` : `${icon('volume-xmark')} OFF`; soundBtn.setAttribute('aria-pressed', String(sound.on)); };
+  const paintSound = () => { soundBtn.innerHTML = icon(sound.on ? 'volume-high' : 'volume-xmark'); soundBtn.title = `効果音（${sound.on ? 'ON' : 'OFF'}）`; soundBtn.setAttribute('aria-pressed', String(sound.on)); };
   paintSound();
   soundBtn.addEventListener('click', () => { sound.toggle(); paintSound(); sound.blip(); });
   addEventListener('block-hit', () => sound.hit());
@@ -94,6 +94,18 @@
   };
   addEventListener('scroll', onScroll, { passive: true });
   onScroll();
+
+  /* ---------- 今見ているセクションをナビで示す ---------- */
+  const navLinks = $$('.bar-nav a[data-section]');
+  const sections = navLinks.map((a) => document.getElementById(a.dataset.section)).filter(Boolean);
+  const markSection = () => {
+    // 画面の上から 1/3 の位置を通り過ぎた最後のセクションを、今のセクションとする
+    const line = innerHeight / 3;
+    const current = sections.findLast((sec) => sec.getBoundingClientRect().top <= line);
+    navLinks.forEach((a) => a.toggleAttribute('aria-current', a.dataset.section === current?.id));
+  };
+  addEventListener('scroll', markSection, { passive: true });
+  markSection();
 
   /* ---------- ぴたん ---------- */
   const pitan = $('#pitan');
