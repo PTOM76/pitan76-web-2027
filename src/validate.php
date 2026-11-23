@@ -1,10 +1,27 @@
 <?php
 declare(strict_types=1);
 
-/**
- * data/ の JSON に必要な項目があるかを確かめる。足りない項目を「ファイル: パス」の形で返す。
- * 型の指定: 'string'、'array'（配列ならなんでも）、['キー' => 型, ...]（各要素がその形の配列）。
- */
+/** data/ の JSON の項目の型。各要素が決まった形の配列は、型の代わりに ['キー' => 型, ...] で書く。 */
+enum Field {
+    case Text;
+    case List;
+
+    public function accepts(mixed $v): bool {
+        return match ($this) {
+            self::Text => is_string($v),
+            self::List => is_array($v),
+        };
+    }
+
+    public function label(): string {
+        return match ($this) {
+            self::Text => '文字列',
+            self::List => '配列',
+        };
+    }
+}
+
+/** data/ の JSON に必要な項目があるかを確かめる。問題を「ファイル: パス」の形で返す。 */
 function validate_data(array $data, array $schema, string $where): array {
     $errors = [];
     foreach ($schema as $key => $type) {
@@ -14,31 +31,42 @@ function validate_data(array $data, array $schema, string $where): array {
             continue;
         }
         $v = $data[$key];
-        if ($type === 'string' && !is_string($v)) $errors[] = "$path は文字列にしてください";
-        elseif ($type === 'array' && !is_array($v)) $errors[] = "$path は配列にしてください";
-        elseif (is_array($type)) {
-            if (!is_array($v)) { $errors[] = "$path は配列にしてください"; continue; }
-            foreach (array_values($v) as $i => $row) {
-                $errors = array_merge($errors, is_array($row) ? validate_data($row, $type, "{$path}[$i]") : ["{$path}[$i] の形が違います"]);
-            }
+        if (is_array($type)) {
+            $errors = [...$errors, ...validate_rows($v, $type, $path)];
+        } elseif (!$type->accepts($v)) {
+            $errors[] = "$path は{$type->label()}にしてください";
         }
     }
     return $errors;
 }
 
+/** 各要素が $schema の形の配列かを確かめる。 */
+function validate_rows(mixed $rows, array $schema, string $path): array {
+    if (!is_array($rows)) return ["$path は配列にしてください"];
+    $errors = [];
+    foreach (array_values($rows) as $i => $row) {
+        $errors = [...$errors, ...is_array($row)
+            ? validate_data($row, $schema, "{$path}[$i]")
+            : ["{$path}[$i] の形が違います"]];
+    }
+    return $errors;
+}
+
 const SITE_SCHEMA = [
-    'title' => 'string', 'author' => 'string', 'description' => 'string', 'lead' => 'string', 'heroFacts' => 'string',
-    'links' => 'array',
-    'skills' => ['name' => 'string', 'items' => 'array'],
-    'history' => ['period' => 'string', 'items' => 'string'],
-    'qualifications' => ['name' => 'string'],
-    'achievements' => ['id' => 'string', 'label' => 'string', 'value' => 'string'],
-    'activities' => 'array',
+    'title' => Field::Text, 'author' => Field::Text, 'description' => Field::Text, 'lead' => Field::Text, 'heroFacts' => Field::Text,
+    'links' => Field::List,
+    'skills' => ['name' => Field::Text, 'items' => Field::List],
+    'history' => ['period' => Field::Text, 'items' => Field::Text],
+    'qualifications' => ['name' => Field::Text],
+    'achievements' => ['id' => Field::Text, 'label' => Field::Text, 'value' => Field::Text],
+    'activities' => Field::List,
 ];
 
 const PROJECT_SCHEMA = [
-    'work' => 'string', 'name' => 'string', 'category' => 'string', 'summary' => 'string',
-    'detail' => 'string', 'tags' => 'array', 'url' => 'string',
+    'work' => Field::Text, 'name' => Field::Text, 'category' => Field::Text, 'summary' => Field::Text,
+    'detail' => Field::Text, 'tags' => Field::List, 'url' => Field::Text,
 ];
 
-const CHARACTER_SCHEMA = ['name' => 'string', 'proto' => 'string', 'desc' => 'string', 'start' => 'string', 'done' => 'string'];
+const CHARACTER_SCHEMA = [
+    'name' => Field::Text, 'proto' => Field::Text, 'desc' => Field::Text, 'start' => Field::Text, 'done' => Field::Text,
+];

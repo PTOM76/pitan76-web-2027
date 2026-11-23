@@ -207,7 +207,19 @@ const mouse = new THREE.Vector2();
 const mouseTarget = new THREE.Vector2();
 const ndc = new THREE.Vector2(9, 9);
 const ray = new THREE.Raycaster();
-const UI = 'a,button,input,label,p,h1,h2,h3,li,td,th,dl,.work-text,.bar,.terminal,.loot,.chara,.dex,.courier,.toast,.spec,.inv,.filters';
+// 要素の箱全体でブロックの操作を止める UI と、文字の上だけで止める文章を分ける。
+// 見出しや段落は横幅いっぱいに広がるため、箱で判定すると文字のない余白でもブロックを触れなくなる
+const UI = 'a,button,input,label,.sk,.work-text,.bar,.terminal,.loot,.chara,.dex,.courier,.toast,.spec,.inv,.filters';
+const TEXT = 'p,h1,h2,h3,li,td,th,dl';
+const range = document.createRange();
+function overUI(e) {
+  if (e.target.closest(UI)) return true;
+  const el = e.target.closest(TEXT);
+  if (!el) return false;
+  range.selectNodeContents(el);
+  return [...range.getClientRects()].some((r) =>
+    e.clientX >= r.left - 4 && e.clientX <= r.right + 4 && e.clientY >= r.top && e.clientY <= r.bottom);
+}
 let hovered = null;
 let broken = 0;
 
@@ -218,11 +230,11 @@ addEventListener('pointermove', (e) => {
   }
   lastPt.x = e.clientX; lastPt.y = e.clientY;
   mouseTarget.set(e.clientX / innerWidth - 0.5, e.clientY / innerHeight - 0.5);
-  if (e.target.closest(UI)) { ndc.set(9, 9); return; }
+  if (overUI(e)) { ndc.set(9, 9); return; }
   ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
 });
 addEventListener('pointerdown', (e) => {
-  if (e.button !== 0 || e.target.closest(UI)) return;
+  if (e.button !== 0 || overUI(e)) return;
   grabbed = null;
   // タッチでは pointermove が先に来ないため、ここでも位置を更新する
   ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);

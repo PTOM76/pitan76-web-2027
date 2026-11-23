@@ -1,16 +1,16 @@
 <?php
 declare(strict_types=1);
 
-/** JSON ファイルを連想配列として読む。壊れていれば例外を投げる。 */
+/** JSON ファイルを連想配列として読む。読めない、または壊れていれば例外を投げる。 */
 function json_data(string $file): array {
     $raw = @file_get_contents($file);
     if ($raw === false) throw new RuntimeException("cannot read: $file");
-    return json_decode($raw ?: '[]', true, 512, JSON_THROW_ON_ERROR);
+    return json_decode($raw ?: '[]', true, flags: JSON_THROW_ON_ERROR);
 }
 
 /** HTML に埋め込む値をエスケープする。 */
 function h(mixed $v): string {
-    return htmlspecialchars((string)($v ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 /** スクリプト内に埋め込む JSON。</script> などで閉じられないようにする。 */
@@ -24,14 +24,15 @@ function warn(string $message): void {
 
 /** works-info の日付（2026/08/24、20260926 など）を Y-m-d にそろえる。読めなければ空文字。 */
 function ymd(?string $d): string {
-    if (!$d || !preg_match('/^(\d{4})\D?(\d{1,2})\D?(\d{1,2})/', $d, $m)) return '';
-    return sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3]);
+    return preg_match('/^(\d{4})\D?(\d{1,2})\D?(\d{1,2})/', $d ?? '', $m)
+        ? sprintf('%04d-%02d-%02d', $m[1], $m[2], $m[3])
+        : '';
 }
 
 /** 説明文の HTML を除去して 1 行のテキストにする。 */
 function plain(string $html): string {
-    $t = html_entity_decode(strip_tags(preg_replace('~<br\s*/?>~i', ' ', $html)), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    return trim(preg_replace('/\s+/u', ' ', $t));
+    $text = html_entity_decode(strip_tags(preg_replace('~<br\s*/?>~i', ' ', $html)), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    return trim(preg_replace('/\s+/u', ' ', $text));
 }
 
 /** ファイル名や URL に使える ID にする。 */
@@ -41,37 +42,41 @@ function slug(string $id): string {
 
 function http_get(string $url): ?string {
     $ctx = stream_context_create(['http' => ['timeout' => 15, 'header' => "User-Agent: pitan76-web-build\r\n"]]);
-    $raw = @file_get_contents($url, false, $ctx);
-    return $raw === false ? null : $raw;
+    return @file_get_contents($url, context: $ctx) ?: null;
+}
+
+function ensure_dir(string $dir): void {
+    if (!is_dir($dir)) mkdir($dir, 0777, true);
 }
 
 /** 親フォルダを作ってから書き込む。 */
 function write_file(string $path, string $content): void {
-    $dir = dirname($path);
-    if (!is_dir($dir)) mkdir($dir, 0777, true);
+    ensure_dir(dirname($path));
     file_put_contents($path, $content);
 }
 
 function copy_file(string $src, string $dst): void {
-    $dir = dirname($dst);
-    if (!is_dir($dir)) mkdir($dir, 0777, true);
+    ensure_dir(dirname($dst));
     copy($src, $dst);
 }
 
-/** $cached が $sources のどれよりも古い（またはない）ときに true。 */
+/** $cached がないか、$sources のどれかより古ければ true。 */
 function is_stale(string $cached, string ...$sources): bool {
     if (!is_file($cached)) return true;
     $t = filemtime($cached);
-    foreach ($sources as $s) {
-        if (filemtime($s) > $t) return true;
-    }
-    return false;
+    return array_any($sources, static fn($s) => filemtime($s) > $t);
 }
 
 function rrmdir(string $dir): void {
     if (!is_dir($dir)) return;
-    $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
-    foreach ($it as $f) $f->isDir() ? rmdir($f->getPathname()) : unlink($f->getPathname());
+    $files = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+        RecursiveIteratorIterator::CHILD_FIRST,
+    );
+    foreach ($files as $f) {
+        $f->isDir() ? rmdir($f->getPathname()) : unlink($f->getPathname());
+    }
+    rmdir($dir);
 }
 
 /**
@@ -79,10 +84,8 @@ function rrmdir(string $dir): void {
  * 存在しない id があれば例外を投げる。
  */
 function fill_placeholders(string $text, array $values): string {
-    $html = preg_replace_callback('/\{(\w+)\}|[^{]+|\{/', static function (array $m) use ($values): string {
-        if (!isset($m[1]) || $m[1] === '') return h($m[0]);
-        if (!array_key_exists($m[1], $values)) throw new RuntimeException("プレースホルダ {{$m[1]}} に対応する値がありません");
-        return '<b class="num">' . h($values[$m[1]]) . '</b>';
-    }, $text);
-    return $html;
+    return preg_replace_callback('/\{(\w+)\}/', static fn(array $m) => array_key_exists($m[1], $values)
+        ? '<b class="num">' . h($values[$m[1]]) . '</b>'
+        : throw new RuntimeException("プレースホルダ {{$m[1]}} に対応する値がありません"),
+    h($text));
 }

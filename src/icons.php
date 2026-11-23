@@ -2,46 +2,58 @@
 declare(strict_types=1);
 
 /**
- * 技術スタックのロゴを取得して $dir に保存する。ロゴの指定は data/config.json の skillIcons。
+ * 技術スタックのロゴの指定。data/config.json の skillIcons に次の形で書く。
  *   "java/java-original"  Devicon のカラーロゴ
  *   "si:slug:色"          Simple Icons の単色ロゴを指定色で塗る
  *   "https://..."         画像の URL をそのまま取得する
- * 返り値は 名前 => [ファイル名, ...]。1 つも取得できなかった名前は含まない（文字のマークで表示する）。
  */
+final readonly class IconRef {
+    /** @param Closure(): ?string $fetch ロゴを取得する。失敗したら null */
+    private function __construct(
+        public string $file,
+        public Closure $fetch,
+    ) {}
+
+    public static function parse(string $ref, array $src): self {
+        return match (true) {
+            str_starts_with($ref, 'https://') => new self(
+                'url-' . basename(parse_url($ref, PHP_URL_PATH)),
+                static fn() => ($raw = http_get($ref)) !== null && @imagecreatefromstring($raw) ? $raw : null,
+            ),
+            str_starts_with($ref, 'si:') => self::simpleIcon($ref, $src['simpleIcons']),
+            default => new self(
+                basename($ref) . '.svg',
+                static fn() => http_get("{$src['devicon']}/$ref.svg"),
+            ),
+        };
+    }
+
+    private static function simpleIcon(string $ref, string $base): self {
+        [, $slug, $hex] = explode(':', $ref);
+        return new self("si-$slug.svg", static function () use ($base, $slug, $hex): ?string {
+            $svg = http_get("$base/$slug.svg");
+            return $svg === null ? null : str_replace('<path ', "<path fill=\"#$hex\" ", $svg);
+        });
+    }
+
+    /** $dir に保存されていなければ取得する。保存できたら true。 */
+    public function saveTo(string $dir): bool {
+        $path = "$dir/$this->file";
+        if (!is_file($path) && ($raw = ($this->fetch)()) !== null) file_put_contents($path, $raw);
+        return is_file($path);
+    }
+}
+
+/** 技術スタックのロゴを $dir に保存する。返り値は 名前 => [ファイル名, ...]。1 つも取得できなかった名前は含まない（文字のマークで表示する）。 */
 function skill_icons(array $skills, array $config, string $dir): array {
-    if (!is_dir($dir)) mkdir($dir, 0777, true);
-    $src = $config['iconSources'];
+    ensure_dir($dir);
     $out = [];
-    foreach ($skills as $g) {
-        foreach ($g['items'] as $name) {
-            foreach ($config['skillIcons'][$name] ?? [] as $ref) {
-                [$file, $fetch] = icon_ref($ref, $src);
-                if (!is_file("$dir/$file")) {
-                    $raw = $fetch();
-                    if ($raw !== null) file_put_contents("$dir/$file", $raw);
-                }
-                if (is_file("$dir/$file")) $out[$name][] = $file;
-                else warn("icon skipped: $ref");
-            }
+    foreach (array_merge(...array_column($skills, 'items')) as $name) {
+        foreach ($config['skillIcons'][$name] ?? [] as $ref) {
+            $icon = IconRef::parse($ref, $config['iconSources']);
+            if ($icon->saveTo($dir)) $out[$name][] = $icon->file;
+            else warn("icon skipped: $ref");
         }
     }
     return $out;
-}
-
-/** ロゴの指定を [保存するファイル名, 取得する関数] にする。 */
-function icon_ref(string $ref, array $src): array {
-    if (str_starts_with($ref, 'https://')) {
-        return ['url-' . basename(parse_url($ref, PHP_URL_PATH)), static function () use ($ref): ?string {
-            $raw = http_get($ref);
-            return $raw !== null && @imagecreatefromstring($raw) ? $raw : null;
-        }];
-    }
-    if (str_starts_with($ref, 'si:')) {
-        [, $slug, $hex] = explode(':', $ref);
-        return ["si-$slug.svg", static function () use ($src, $slug, $hex): ?string {
-            $raw = http_get("{$src['simpleIcons']}/$slug.svg");
-            return $raw === null ? null : str_replace('<path ', "<path fill=\"#$hex\" ", $raw);
-        }];
-    }
-    return [basename($ref) . '.svg', static fn(): ?string => http_get("{$src['devicon']}/$ref.svg")];
 }

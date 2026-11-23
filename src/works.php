@@ -10,7 +10,7 @@ function fetch_works(string $url, string $cache, bool $dev): array {
         return is_file($cache) ? json_data($cache) : [];
     }
     write_file($cache, $raw);
-    return json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+    return json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
 }
 
 /**
@@ -19,22 +19,21 @@ function fetch_works(string $url, string $cache, bool $dev): array {
  * 生成済みならキャッシュを使う。返り値は 作品 ID => ['file' => ファイル名, 'faces' => 画像の枚数]。
  */
 function work_thumbs(array $works, string $dir): array {
-    if (!is_dir($dir)) mkdir($dir, 0777, true);
+    ensure_dir($dir);
     $out = [];
     foreach ($works as $w) {
         $images = $w['custom']['images'] ?? [];
-        if (!$images) continue;
+        $first = array_first($images);
+        if ($first === null) continue;
         $id = slug($w['id']);
-        $sq = "$dir/$id.jpg";
-        $wide = "$dir/$id-w.jpg";
-        if (!is_file($sq) || !is_file($wide)) {
-            $img = fetch_image($images[0]);
+        if (!is_file("$dir/$id.jpg") || !is_file("$dir/$id-w.jpg")) {
+            $img = fetch_image($first);
             if (!$img) {
                 warn("image skipped: {$w['id']}");
                 continue;
             }
-            imagejpeg(cover($img, 256, 256), $sq, 82);
-            imagejpeg(cover($img, 640, 360), $wide, 80);
+            imagejpeg(cover($img, 256, 256), "$dir/$id.jpg", 82);
+            imagejpeg(cover($img, 640, 360), "$dir/$id-w.jpg", 80);
         }
         $faces = 1;
         foreach (array_slice($images, 1, 5) as $url) {
@@ -53,12 +52,11 @@ function work_thumbs(array $works, string $dir): array {
 
 /** 日付をそろえ、新しい順に並べる。 */
 function normalize_works(array $works): array {
-    foreach ($works as &$w) {
-        $w['createAt'] = ymd($w['createAt'] ?? null);
-        $w['updateAt'] = ymd($w['updateAt'] ?? null);
-    }
-    unset($w);
-    usort($works, static fn($a, $b) => strcmp($b['updateAt'] ?: $b['createAt'], $a['updateAt'] ?: $a['createAt']));
+    $works = array_map(static fn(array $w) => [
+        'createAt' => ymd($w['createAt'] ?? null),
+        'updateAt' => ymd($w['updateAt'] ?? null),
+    ] + $w, $works);
+    usort($works, static fn($a, $b) => ($b['updateAt'] ?: $b['createAt']) <=> ($a['updateAt'] ?: $a['createAt']));
     return $works;
 }
 
@@ -68,39 +66,37 @@ function normalize_works(array $works): array {
  * @param array $notes  作品 ID => つくった理由
  */
 function build_items(array $works, array $thumbs, array $notes, array $config, array $featuredIds): array {
-    $items = [];
-    foreach ($works as $w) {
+    return array_map(static function (array $w) use ($thumbs, $notes, $config, $featuredIds): array {
         $id = $w['id'];
-        $t = $thumbs[$id] ?? null;
-        $f = array_search($id, $featuredIds, true);
+        $thumb = $thumbs[$id] ?? null;
         $site = array_filter($w['site'] ?? [], static fn($u) => is_string($u) && str_starts_with($u, 'http'));
-        $items[] = [
+        $date = $w['updateAt'] ?: $w['createAt'];
+        return [
             'id' => $id,
             'page' => 'works/' . slug($id) . '.html',
             'card' => 'works/' . slug($id) . '.card.html',
             'name' => $w['name'],
             'desc' => plain($w['description'] ?? ''),
             'cat' => $config['categories'][$w['category'] ?? 'misc'] ?? 'Misc',
-            'year' => substr($w['updateAt'] ?: $w['createAt'], 0, 4),
-            'date' => $w['updateAt'] ?: $w['createAt'],
+            'year' => substr($date, 0, 4),
+            'date' => $date,
             'created' => $w['createAt'],
             'updated' => $w['updateAt'] !== '' && $w['createAt'] !== $w['updateAt'],
             'url' => $site['modparks'] ?? $w['url'] ?? $site['github'] ?? '',
             'tags' => $w['tag'] ?? [],
-            'thumb' => $t ? "assets/works/{$t['file']}" : null,
-            'faces' => $t['faces'] ?? 0,
+            'thumb' => $thumb ? "assets/works/{$thumb['file']}" : null,
+            'faces' => $thumb['faces'] ?? 0,
             'version' => $w['version'] ?? '',
             'license' => $w['license'] ?? '',
             'mc' => $w['custom']['mcversion'] ?? '',
             'links' => array_map(
                 static fn($k, $u) => ['label' => $config['linkLabels'][$k] ?? ucfirst($k), 'url' => $u],
-                array_keys($site), array_values($site)
+                array_keys($site), $site,
             ),
             'note' => $notes[$id] ?? '',
-            'featured' => $f === false ? null : $f,
+            'featured' => array_find_key($featuredIds, static fn($f) => $f === $id),
         ];
-    }
-    return $items;
+    }, $works);
 }
 
 /** 作品の詳細項目（ラベル => 値）。値のない項目は含めない。 */
