@@ -2,7 +2,7 @@
   "title": "PITAN76.NET '27",
   "author": "Pitan",
   "description": "Pitanの制作物と開発プロジェクト。",
-  "lead": "Bug-Creator のぴたんです。MODやWebなどを開発している、技術系が好きな機械弱者。",
+  "lead": "Bug-Creator のぴたんです。ModやWebなどを開発している、技術系が好きな機械弱者。28卒。",
   "links": {
     "github": "https://github.com/PTOM76"
   },
@@ -77,7 +77,7 @@
     },
     {
       "period": "高校生",
-      "items": "Minecraft Mod開発"
+      "items": "マイクラMOD開発"
     },
     {
       "period": "大学生",
@@ -87,15 +87,15 @@
   "achievements": [
     {
       "value": "40+",
-      "label": "Minecraft Mod 開発作品"
+      "label": "マイクラMOD 開発作品"
     },
     {
       "value": "1,350万+",
-      "label": "Minecraft Mod 累計ダウンロード"
+      "label": "マイクラMOD 累計ダウンロード"
     },
     {
-      "value": "94",
-      "label": "WikiChree.COM 運営Wiki"
+      "value": "90+",
+      "label": "WikiChree.COM のウィキ数"
     }
   ],
   "activities": [
