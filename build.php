@@ -41,7 +41,7 @@ if ($errors) {
 
 // ---------- 作品・画像・ロゴ ----------
 $works = normalize_works(fetch_works($config['worksUrl'], "$cache/works.json", $dev));
-$thumbs = work_thumbs($works, "$cache/works");
+$thumbs = work_thumbs($works, ROOT . '/assets/works');
 $icons = skill_icons($site['skills'], $config, "$cache/icons");
 $workIcons = work_icons($works, ROOT . '/assets/img/works');
 $items = build_items($works, $thumbs, $workIcons, $notes, $config, array_column($projects, 'work'));
@@ -111,7 +111,7 @@ foreach ($workIcons as $file) {
     copy_file(ROOT . "/assets/img/works/$file", "$out/assets/img/works/$file");
 }
 foreach ($thumbs as $t) {
-    foreach (glob("$cache/works/{$t['file']}{,-w,-[2-6]}.jpg", GLOB_BRACE) as $f) {
+    foreach (glob(ROOT . "/assets/works/{$t['file']}{,-w,-[2-6]}.jpg", GLOB_BRACE) as $f) {
         copy_file($f, "$out/assets/works/" . basename($f));
     }
 }

@@ -16,7 +16,8 @@ function fetch_works(string $url, string $cache, bool $dev): array {
 /**
  * 作品画像を取得し、ブロック用（正方形）とカード用（16:9）のサムネイルを作る。
  * 2 枚目以降の画像（最大 6 枚目まで）はブロックの別の面に使うため、正方形のみ "ID-2.jpg" の形で保存する。
- * 生成済みならキャッシュを使う。返り値は 作品 ID => ['file' => ファイル名, 'faces' => 画像の枚数]。
+ * $dir はリポジトリの assets/works/。一度作ったサムネイルは取得し直さない（作り直すときは該当のファイルを削除する）。
+ * 返り値は 作品 ID => ['file' => ファイル名, 'faces' => 画像の枚数]。
  */
 function work_thumbs(array $works, string $dir): array {
     ensure_dir($dir);

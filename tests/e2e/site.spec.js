@@ -66,6 +66,8 @@ test('図鑑をスクロールしても背景と枠が途切れない', async ({
   await page.setViewportSize({ width: 1000, height: 500 });
   await open(page);
   await page.click('#dex-open');
+  // 開くときの拡大のアニメーションが終わってから測る（途中だと窓が大きく見える）
+  await page.locator('.dex-win').evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
   // 窓の中身がはみ出さず、窓そのものの高さに収まっている（背景の ::before が全体を覆う）
   const { scroll, client } = await page.locator('.dex-win').evaluate((el) => ({ scroll: el.scrollHeight, client: el.clientHeight }));
   expect(scroll).toBeLessThanOrEqual(client + 1);

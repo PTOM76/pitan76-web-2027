@@ -38,6 +38,8 @@
     'projects' => array_map(static fn($p) => ['name' => $p['name'], 'url' => $p['url']], $projects),
     'characters' => $characters,
     'term' => terminal_text($site, $projects),
+    // main.js が動的に出すアイコン（Font Awesome の solid）。名前 => [幅, 高さ, パス]
+    'icons' => fa_icons()['solid'],
     'works' => array_map(static fn($w) => array_intersect_key($w, array_flip(['id', 'page', 'card', 'name', 'desc', 'cat', 'tags', 'thumb', 'faces', 'icon', 'featured', 'url'])), $items),
 ]) ?>;</script>
 <script type="module" src="<?= h(asset('assets/scene.js')) ?>"></script>

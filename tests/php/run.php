@@ -62,6 +62,10 @@ same(is_stale("$tmp/new", "$tmp/old"), false, 'is_stale: 元より新しけれ�
 rrmdir($tmp);
 same(is_dir($tmp), false, 'rrmdir: フォルダごと消す');
 
+same(str_starts_with(icon('xmark'), '<svg class="icon" viewBox="0 0 '), true, 'icon: SVG を出力する');
+same(str_contains(icon('github', 'brands'), '<path d="'), true, 'icon: ブランドのロゴ');
+throws(static fn() => icon('no-such-icon'), 'icon: ない名前は例外（書き間違いに気づけるように）');
+
 // ---------- validate.php ----------
 $schema = ['name' => Field::Text, 'tags' => Field::List, 'rows' => ['id' => Field::Text]];
 same(validate_data(['name' => 'a', 'tags' => [], 'rows' => [['id' => 'x']]], $schema, 'f'), [], 'validate_data: 正しいデータはエラーなし');

@@ -8,12 +8,14 @@
         "check": "node scripts/check.mjs",
         "test": "php tests/php/run.php && playwright test",
         "test:e2e": "playwright test",
-        "block-images": "node scripts/block-images.mjs"
+        "block-images": "node scripts/block-images.mjs",
+        "fa-icons": "node scripts/fa-icons.mjs"
     },
     "engines": {
         "node": ">=20.11"
     },
     "devDependencies": {
+        "@fortawesome/fontawesome-free": "6.7.2",
         "@playwright/test": "1.65.1"
     }
 }

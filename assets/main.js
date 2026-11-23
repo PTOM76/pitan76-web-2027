@@ -5,7 +5,16 @@
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const SITE = window.SITE;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const icon = (name) => `<i class="fa-solid fa-${name}" aria-hidden="true"></i>`;
+  // Font Awesome のアイコンを SVG で出す。データは PHP が SITE.icons に入れている（src/fa-icons.json）
+  const icon = (name) => {
+    const i = SITE.icons?.[name];
+    if (!i) return '';
+    const [w, h, d] = i;
+    return `<svg class="icon" viewBox="0 0 ${w} ${h}" width="${+(w / h).toFixed(3)}em" height="1em" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
+  };
+  // 画面（<dialog>）の開閉。showModal で開くと、Tab のフォーカスが中に留まり、Escape で手前の画面だけが閉じる
+  const openModal = (d) => { if (!d.open) d.showModal(); };
+  const closeModal = (d) => { if (d.open) d.close(); };
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
   /* ---------- 効果音 ---------- */
@@ -92,7 +101,10 @@
     const el = document.createElement('div');
     el.className = 'toast';
     el.innerHTML = `<span class="toast-icon">${icon(name)}</span><div><b>${esc(label)}</b>${esc(title)}</div>`;
-    $('#toasts').append(el);
+    const box = $('#toasts');
+    box.append(el);
+    // 画面（<dialog>）より手前に出すため、出し直して最前面の層のいちばん上に置く
+    if (box.showPopover) { if (box.matches(':popover-open')) box.hidePopover(); box.showPopover(); }
     setTimeout(() => el.remove(), 4400);
   }
   function achieve(id, title, name = 'star') {
@@ -261,9 +273,13 @@
   const loot = $('#loot');
   let delivering = false;
   let current = couriers[keys[0]];
-  let pending = null;
+  // 配達中に見つかった作品の待ち行列。TNT の爆発などで一度に何件出ても、1 件ずつ順に届ける
+  const queue = [];
   async function deliver(w, kind) {
-    if (delivering) { pending = { w, kind }; return; }
+    if (delivering) {
+      if (!queue.some((q) => q.w.id === w.id)) queue.push({ w, kind });
+      return;
+    }
     delivering = true;
     const file = (w.id || 'item').replace(/[^a-z0-9_-]/gi, '-');
     const c = couriers[kind || courierFor(w)];
@@ -283,13 +299,12 @@
     await showLoot(w, false);
     // カードを閉じるまで（最長 8 秒）その場に残る
     const t0 = performance.now();
-    while ((!loot.hidden && performance.now() - t0 < 8000) || !chara.hidden) await wait(200);
+    while ((loot.open && performance.now() - t0 < 8000) || chara.open) await wait(200);
     await wait(1200);
     courier.classList.remove('show');
     delivering = false;
-    if (pending) {
-      const next = pending;
-      pending = null;
+    const next = queue.shift();
+    if (next) {
       await wait(500);
       deliver(next.w, next.kind);
     }
@@ -301,14 +316,14 @@
     $('#chara-name').textContent = c.name;
     $('#chara-proto').textContent = c.proto;
     $('#chara-desc').textContent = c.desc;
-    chara.hidden = false;
+    openModal(chara);
     $('#chara-close').focus({ preventScroll: true });
     sound.blip();
     achieve('chara-' + c.key, c.name + 'に会った', 'envelope');
   }
   $('#courier-btn').addEventListener('click', () => showChara(current));
-  $('#chara-close').addEventListener('click', () => { chara.hidden = true; });
-  chara.addEventListener('click', (e) => { if (e.target === chara) chara.hidden = true; });
+  $('#chara-close').addEventListener('click', () => { closeModal(chara); });
+  chara.addEventListener('click', (e) => { if (e.target === chara) closeModal(chara); });
 
   // カードの中身は PHP が作品ごとに works/ID.card.html として出力している。必要になった 1 件だけ読み込む
   const cards = new Map();
@@ -329,17 +344,17 @@
       const a = document.createElement('a');
       a.href = w.page; a.textContent = `${w.name} の詳細ページを開く`;
       $('#loot-body').replaceChildren(a);
-      loot.hidden = false;
+      openModal(loot);
       return;
     }
     // 中身はビルド時に PHP がエスケープ済みの、同じサイト内の HTML
     $('#loot-body').innerHTML = html;
-    loot.hidden = false;
+    openModal(loot);
     // 配達で自動的に開いたときは、閲覧中の操作を邪魔しないようフォーカスを動かさない
     if (focusCard) $('#loot-close').focus({ preventScroll: true });
   }
-  loot.addEventListener('click', (e) => { if (e.target === loot) loot.hidden = true; });
-  $('#loot-close').addEventListener('click', () => { loot.hidden = true; });
+  loot.addEventListener('click', (e) => { if (e.target === loot) closeModal(loot); });
+  $('#loot-close').addEventListener('click', () => { closeModal(loot); });
 
   /* ---------- 作品図鑑（掘り当てた作品をブラウザに記録する） ---------- */
   const found = new Set();
@@ -369,13 +384,13 @@
   });
   function openDex() {
     renderDex();
-    dex.hidden = false;
+    openModal(dex);
     $('#dex-close').focus({ preventScroll: true });
     achieve('dex', '図鑑を開いた', 'book');
   }
   $('#dex-open').addEventListener('click', openDex);
-  $('#dex-close').addEventListener('click', () => { dex.hidden = true; });
-  dex.addEventListener('click', (e) => { if (e.target === dex) dex.hidden = true; });
+  $('#dex-close').addEventListener('click', () => { closeModal(dex); });
+  dex.addEventListener('click', (e) => { if (e.target === dex) closeModal(dex); });
   // 図鑑の記録と実績を消す。テーマや効果音などの設定は残す
   function resetProgress() {
     found.clear();
@@ -400,7 +415,7 @@
     found.add(w.id);
     try { localStorage.setItem('dex', JSON.stringify([...found])); } catch { /* noop */ }
     toast('図鑑に登録', w.name, 'book');
-    if (!dex.hidden) renderDex();
+    if (dex.open) renderDex();
     if (found.size === 10) achieve('found10', '作品を10個発掘した', 'bullseye');
     if (found.size === 50) achieve('found50', '作品を50個発掘した', 'gem');
     if (SITE.works.every((x) => found.has(x.id))) achieve('foundAll', '図鑑をすべて埋めた', 'star');
@@ -585,7 +600,7 @@
       if (m) {
         const w = findWork(m[1]);
         if (!w) return 'HTTP/1.1 404 Not Found\nX-Served-By: HTTPプロトコルさん';
-        term.hidden = true;
+        closeModal(term);
         showLoot(w);
         return `HTTP/1.1 200 OK\nContent-Type: application/x-pitan-work\nX-Served-By: HTTPプロトコルさん\n\n${esc(w.name)}`;
       }
@@ -595,14 +610,14 @@
     goto: (s) => {
       const el = document.getElementById(s);
       if (!el) return '<span class="err">sections: works, index, inventory, log</span>';
-      term.hidden = true;
+      closeModal(term);
       el.scrollIntoView({ behavior: 'smooth' });
       return '';
     },
     bug: () => (bugMode() ? 'bug mode: ON' : 'bug mode: OFF'),
     sudo: (a) => {
       if (/^rm\s+-(rf|fr)\s+\/\*?$/.test(a)) {
-        term.hidden = true;
+        closeModal(term);
         collapse();
         achieve('rmrf', 'sudo rm -rf / を実行した', 'skull');
         return '<span class="err">removing / …</span>';
@@ -615,11 +630,11 @@
       if (!m) return '220 SMTPプロトコルさん ESMTP ready.\nusage: smtp send &lt;作品名&gt;';
       const w = findWork(m[1]);
       if (!w) return `550 ${esc(m[1])}: Mailbox unavailable`;
-      term.hidden = true;
+      closeModal(term);
       deliver(w, 'smtp');
       return '250 OK\n354 Start mail input; end with &lt;CRLF&gt;.&lt;CRLF&gt;';
     },
-    dex: () => { term.hidden = true; openDex(); return ''; },
+    dex: () => { closeModal(term); openDex(); return ''; },
     theme: (a) => {
       if (!['auto', 'light', 'dark'].includes(a)) return `theme: ${themeMode}\nusage: theme auto|light|dark`;
       themeMode = a;
@@ -634,7 +649,7 @@
       if (!m) return '220 FTPプロトコルさん ready.\nusage: ftp get &lt;作品名&gt;';
       const w = findWork(m[1]);
       if (!w) return `550 ${esc(m[1])}: No such file or directory`;
-      term.hidden = true;
+      closeModal(term);
       deliver(w, 'ftp');
       return `200 PORT command successful.\n150 Opening BINARY mode data connection for ${esc(w.id)}`;
     },
@@ -644,7 +659,7 @@
       return '図鑑の記録と実績を消しました。';
     },
     clear: () => { out.innerHTML = ''; return ''; },
-    exit: () => { term.hidden = true; return ''; },
+    exit: () => { closeModal(term); return ''; },
   };
   // 等幅の画面での表示幅。全角の文字は半角 2 文字分として数える
   const charWidth = (c) => (/[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/.test(c) ? 2 : 1);
@@ -693,14 +708,14 @@
   }
 
   function openTerm() {
-    term.hidden = false;
+    openModal(term);
     if (!out.childElementCount) print('pitan shell — "help" でコマンド一覧');
     input.focus();
     achieve('term', 'ターミナルを開いた', 'terminal');
   }
   $$('[data-open-terminal]').forEach((b) => b.addEventListener('click', openTerm));
-  $$('[data-close-terminal]').forEach((b) => b.addEventListener('click', () => { term.hidden = true; }));
-  term.addEventListener('click', (e) => { if (e.target === term) term.hidden = true; });
+  $$('[data-close-terminal]').forEach((b) => b.addEventListener('click', () => { closeModal(term); }));
+  term.addEventListener('click', (e) => { if (e.target === term) closeModal(term); });
   $('#term-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const line = input.value.trim();
@@ -720,12 +735,8 @@
   });
 
   addEventListener('keydown', (e) => {
-    // Escape は、いちばん手前に開いている画面だけを閉じる（重なり順: ターミナル > キャラ > カード > 図鑑）
-    if (e.key === 'Escape') {
-      const top = [term, chara, loot, dex].find((el) => !el.hidden);
-      if (top) top.hidden = true;
-      return;
-    }
+    // Escape で手前の画面だけを閉じるのは <dialog> が行う
+    if (e.key === 'Escape') return;
     if (e.target.closest('input, textarea')) return;
     if (e.key === '`') { e.preventDefault(); openTerm(); return; }
     const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;   // Caps Lock 中でも効くようにする

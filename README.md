@@ -65,11 +65,15 @@ npm run test:e2e  # ブラウザテストのみ
 | `assets/scene.js` | Three.jsによる作品ブロックの3D表現 |
 | `assets/img/` | キャラクター画像（透過PNG）と、ビルドで生成する画像（ファビコン、OGP画像）。生成する画像は材料のハッシュを `generated.json` に記録し、材料が変わったときだけ作り直す |
 | `assets/img/works/` | 作品のアイコン。ビルド時にModrinth、CurseForge、サイトのfaviconなどから取得して保存する。取得できなかった作品は `missing.txt` に記録し、再取得しない |
+| `assets/works/` | 作品画像のサムネイル（ブロック用の正方形、カード用の16:9）。ビルド時に作品画像から作って保存する。一度作ったものは作り直さないため、作り直すときは該当のファイルを削除する |
+| `src/fa-icons.json` | サイトで使うFont AwesomeのアイコンのSVGデータ。`npm run fa-icons` で作る |
 | `build.php` | ビルドの入口。データの読み込みから出力までの流れ |
 | `scripts/check.mjs` | 構文チェック、PHPの単体テスト、ビルド |
 | `scripts/dev.mjs` | 開発サーバー |
+| `scripts/fa-icons.mjs` | テンプレートとJSで使っているアイコン名を集め、`src/fa-icons.json` を作る |
+| `scripts/block-images.mjs` | READMEのブロックの画像（`docs/blocks/`）を作る |
 
-作品ごとの詳細ページは `dist/works/作品ID.html` に出力する。ブロックを掘り当てたときのカードも同じ部品（`templates/partials/work-card.php`）から `dist/works/作品ID.card.html` に出力し、表示するときに1件ずつ読み込む。作品一覧はビルド時に [works-info](https://github.com/PTOM76/works-info) の `list.json` から取得し、作品画像をブロック用とカード用のサムネイルに変換して `dist/assets/works/` に出力する。
+作品ごとの詳細ページは `dist/works/作品ID.html` に出力する。ブロックを掘り当てたときのカードも同じ部品（`templates/partials/work-card.php`）から `dist/works/作品ID.card.html` に出力し、表示するときに1件ずつ読み込む。作品一覧はビルド時に [works-info](https://github.com/PTOM76/works-info) の `list.json` から取得し、作品画像はブロック用とカード用のサムネイルに変換して `assets/works/` に保存し、`dist/assets/works/` にコピーする。
 
 ## 背景のブロック
 
@@ -100,8 +104,17 @@ npm run test:e2e  # ブラウザテストのみ
 - URLに `#debug` を付けるとデバッグ表示
 - 背景のブロックを左ボタンで長押しすると掘れる。作品が埋まったブロックを掘ると作品が出現し、図鑑に記録される
 - 背景のブロックは右ボタンでドラッグすると回転し、Shiftキーを押しながらドラッグすると移動する（左右どちらのボタンでもよい）。掘ったブロックが復活したときと、代表作のブロックが枠に入ったときは、位置と角度が元に戻る
+- スマホでは、ブロックを指で押さえたまま、もう1本の指を置いてドラッグすると回転する
 - ターミナルの `curl works/作品名`、`ftp get 作品名`、`smtp send 作品名`、`sudo rm -rf /`
 - 図鑑の記録と解除した実績はブラウザ（localStorage）に保存する。図鑑の「記録をリセット」ボタンか、ターミナルの `reset` で消せる
+
+## アイコン
+
+アイコンは [Font Awesome Free](https://fontawesome.com/) を使用し、外部のCSSやフォントは読み込まずにSVGとしてHTMLに埋め込む。PHPの `icon('名前')` がSVGを出力し、`assets/main.js` は `SITE.icons` のデータからSVGを作る。存在しない名前を `icon()` に渡すとビルドが失敗する。
+
+アイコンを追加したら、`npm run fa-icons` で `src/fa-icons.json` を作り直してコミットする。テンプレート、`src/`、`assets/main.js` の中の `'名前'` の形の文字列から、Font Awesomeにある名前を自動で集める。
+
+Font Awesome Freeのアイコンは [CC BY 4.0](https://fontawesome.com/license/free) で提供されている。
 
 ## デプロイ
 

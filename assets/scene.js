@@ -348,17 +348,33 @@ function overUI(e) {
 let hovered = null;
 let broken = 0;
 
+// タッチ中の指。2 本目の指を置くと、掘るのをやめて回す操作に切り替える（2 本指のドラッグで回す）
+const touches = new Map();   // pointerId => { x, y }
+const clampVel = (v) => THREE.MathUtils.clamp(v, -MAX_VEL, MAX_VEL);
+function rotateBy(b, dx, dy, sec) {
+  b.dragY += dx * 0.012;
+  b.dragX += dy * 0.012;
+  b.spinY = towards(b.spinY, clampVel(dx * 0.012 / sec), 0.4);
+  b.spinX = towards(b.spinX, clampVel(dy * 0.012 / sec), 0.4);
+}
+
 addEventListener('pointermove', (e) => {
+  const t = touches.get(e.pointerId);
+  if (t && touches.size >= 2) {
+    // 2 本指: 指の動きの平均でブロックを回す
+    const dx = (e.clientX - t.x) / touches.size, dy = (e.clientY - t.y) / touches.size;
+    t.x = e.clientX; t.y = e.clientY;
+    if (pointerHeld && grabbed) rotateBy(grabbed, dx, dy, Math.max(0.008, (e.timeStamp - lastPt.t) / 1000));
+    lastPt.t = e.timeStamp;
+    return;
+  }
+  if (t) { t.x = e.clientX; t.y = e.clientY; }
   if (pointerHeld && grabbed) {
     const dx = e.clientX - lastPt.x, dy = e.clientY - lastPt.y;
     // 直前の動きの速さをなめらかに記録し、離したときの勢いにする
     const sec = Math.max(0.008, (e.timeStamp - lastPt.t) / 1000);
-    const clampVel = (v) => THREE.MathUtils.clamp(v, -MAX_VEL, MAX_VEL);
     if (mode === 'rotate') {
-      grabbed.dragY += dx * 0.012;
-      grabbed.dragX += dy * 0.012;
-      grabbed.spinY = towards(grabbed.spinY, clampVel(dx * 0.012 / sec), 0.4);
-      grabbed.spinX = towards(grabbed.spinX, clampVel(dy * 0.012 / sec), 0.4);
+      rotateBy(grabbed, dx, dy, sec);
     } else if (mode === 'move') {
       // カーソルと同じ速さで動くよう、ブロックの奥行きでの 1px の長さを掛ける
       const unit = viewHeightAt(grabbed.z) / innerHeight;
@@ -377,6 +393,18 @@ addEventListener('pointermove', (e) => {
 const TAP_MS = 250;
 let downAt = 0;
 addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'touch') {
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    // 1 本目でブロックを押さえている間に 2 本目を置いたら、回す操作に切り替える
+    if (touches.size >= 2) {
+      if (pointerHeld && mode === 'mine') {
+        mode = 'rotate';
+        stopMining();
+        if (grabbed) dispatchEvent(new CustomEvent('block-grab', { detail: { mode } }));
+      }
+      return;
+    }
+  }
   if ((e.button !== 0 && e.button !== 2) || overUI(e)) return;
   grabbed = null;
   downAt = performance.now();
@@ -390,6 +418,7 @@ addEventListener('pointerdown', (e) => {
   document.body.classList.add('holding');
 });
 const release = (e) => {
+  if (e?.pointerId !== undefined) touches.delete(e.pointerId);
   const tapped = grabbed ?? hovered;
   if (pointerHeld && mode === 'mine' && tapped?.kind === 'note' && tapped.alive === 1 && performance.now() - downAt < TAP_MS) playNote(tapped);
   pointerHeld = false;

@@ -20,5 +20,12 @@
     "desc": "メールの配送を担当する。宛先を確かめてから、作品をメールに載せて届ける。",
     "start": "DATA {file}.eml",
     "done": "250 OK: queued"
+  },
+  "ntp": {
+    "name": "NTPプロトコルさん",
+    "proto": "NTP / Network Time Protocol",
+    "desc": "時刻の同期を担当する。サーバーと時計を合わせ、作品をぴったりの時刻に届ける。",
+    "start": "ntpq -c 'rv 0 {file}'",
+    "done": "synchronised to stratum 2"
   }
 }

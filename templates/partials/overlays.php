@@ -6,8 +6,8 @@
 
 <?= partial('dex', ['items' => $items]) ?>
 
-<div class="chara" id="chara" hidden>
-  <div class="chara-card sk" role="dialog" aria-labelledby="chara-name">
+<dialog class="chara" id="chara" aria-labelledby="chara-name">
+  <div class="chara-card sk">
     <button type="button" class="loot-close" id="chara-close" aria-label="閉じる"><?= icon('xmark') ?></button>
     <img id="chara-img" alt="" draggable="false">
     <div class="chara-text">
@@ -16,25 +16,25 @@
       <p id="chara-desc"></p>
     </div>
   </div>
-</div>
+</dialog>
 
-<div class="loot" id="loot" hidden>
-  <div class="loot-card sk" id="loot-card" role="dialog" aria-label="掘り当てた作品">
+<dialog class="loot" id="loot" aria-label="作品">
+  <div class="loot-card sk" id="loot-card">
     <button type="button" class="loot-close" id="loot-close" aria-label="閉じる"><?= icon('xmark') ?></button>
     <!-- 中身は main.js が works/ID.card.html（PHP で生成）を読み込んで入れる -->
     <div class="loot-body" id="loot-body"></div>
   </div>
-</div>
+</dialog>
 
-<div class="terminal" id="terminal" hidden>
-  <div class="term-win" role="dialog" aria-label="ターミナル">
+<dialog class="terminal" id="terminal" aria-label="ターミナル">
+  <div class="term-win">
     <div class="term-bar"><p>pitan@bug-creator:~</p><button type="button" data-close-terminal aria-label="閉じる"><?= icon('xmark') ?></button></div>
     <div class="term-out" id="term-out"></div>
     <form class="term-in" id="term-form"><label for="term-input">$</label><input id="term-input" autocomplete="off" spellcheck="false"></form>
   </div>
-</div>
+</dialog>
 
 <div class="block-tip" id="block-tip" aria-hidden="true"></div>
 <div class="nudge" id="nudge" aria-hidden="true" hidden><?= icon('hand-pointer') ?></div>
-<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="toasts" id="toasts" aria-live="polite" popover="manual"></div>
 <pre class="debug" id="debug" hidden></pre>

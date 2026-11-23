@@ -35,6 +35,8 @@ a { color: inherit; }
 img { display: block; max-width: 100%; height: auto; }
 button { font: inherit; color: inherit; }
 ::selection { background: var(--eye); color: var(--ink); }
+/* Font Awesome のアイコン（SVG）。文字と同じ色で、少し下げて文字の並びにそろえる */
+.icon { fill: currentColor; vertical-align: -0.125em; overflow: visible; flex: none; }
 :focus-visible { outline: 3px solid var(--hair-deep); outline-offset: 3px; }
 .defs { position: absolute; }
 
@@ -266,7 +268,8 @@ body.on-block { cursor: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.or
 body.grabbing { cursor: grabbing; }
 body.moving { cursor: move; }
 /* 長押ししている間は文字の選択とスマホのメニューを止める */
-body.holding { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+/* 押している間は、ページのスクロールやズームもしない（2 本指でブロックを回すため） */
+body.holding { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: none; }
 #scene { -webkit-touch-callout: none; }
 /* 初回の案内。scene.js が揺らしているブロックの上に指のアイコンを置く */
 .nudge { position: fixed; left: 0; top: 0; z-index: 43; pointer-events: none; translate: -35% 4px; font-size: 30px; color: var(--eye); filter: drop-shadow(2px 2px 0 var(--ink)) drop-shadow(-1px -1px 0 var(--ink)); animation: nudge-bob 1.2s ease-in-out infinite; }
@@ -274,7 +277,7 @@ body.holding { -webkit-user-select: none; user-select: none; -webkit-touch-callo
 
 /* ---------- loot ---------- */
 .loot { position: fixed; inset: 0; z-index: 45; display: grid; overflow-y: auto; overscroll-behavior: contain; background: rgba(43, 23, 16, .3); padding: 16px; }
-.loot[hidden] { display: none; }
+.loot:not([open]) { display: none; }
 /* 手描き風の枠と背景は ::before に描くため、カードの中ではなく後ろの幕をスクロールさせる。
    margin: auto で中央に置くと、画面より高いカードでも上端が切れない */
 .loot > *, .chara > *, .dex > * { margin: auto; }
@@ -305,7 +308,7 @@ body.holding { -webkit-user-select: none; user-select: none; -webkit-touch-callo
 
 /* ---------- terminal ---------- */
 .terminal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(43, 23, 16, .35); padding: 16px; }
-.terminal[hidden] { display: none; }
+.terminal:not([open]) { display: none; }
 .term-win { width: min(720px, 100%); height: min(480px, 80vh); display: flex; flex-direction: column; background: #1d120e; color: #f3ece6; border: 2px solid var(--ink); border-radius: 4px; box-shadow: 8px 9px 0 var(--eye); font: 13px/1.6 var(--mono); overflow: hidden; }
 .term-bar { display: flex; align-items: center; background: var(--panel); color: var(--ink); border-bottom: 2px solid var(--ink); }
 .term-bar p { margin: 0; padding: 6px 12px; font-weight: 700; }
@@ -318,7 +321,8 @@ body.holding { -webkit-user-select: none; user-select: none; -webkit-touch-callo
 .term-in input { flex: 1; background: none; border: 0; outline: none; color: inherit; font: inherit; }
 
 /* ---------- toasts ---------- */
-.toasts { position: fixed; top: 64px; right: 16px; z-index: 60; display: grid; gap: 10px; pointer-events: none; }
+.toasts { position: fixed; inset: 64px 16px auto auto; z-index: 60; display: grid; gap: 10px; pointer-events: none; margin: 0; padding: 0; border: 0; background: none; overflow: visible; }
+.toasts:popover-open { display: grid; }
 .toast { width: 290px; padding: 8px 12px; background: var(--ink); color: var(--panel); border-radius: 4px; font-size: 13px; line-height: 1.4; display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: center; box-shadow: 3px 3px 0 var(--eye); animation: toast-in .3s steps(4), toast-out .3s 4s steps(4) forwards; }
 .toast-icon { font-size: 20px; text-align: center; color: var(--eye); }
 .toast b { display: block; font: 400 13px var(--dot); color: var(--eye); }
@@ -355,7 +359,7 @@ body.bug .ht-en { animation: glitch .25s steps(2) infinite; }
 }
 /* ---------- キャラクター紹介 ---------- */
 .chara { position: fixed; inset: 0; z-index: 48; display: grid; overflow-y: auto; overscroll-behavior: contain; background: rgba(43, 23, 16, .35); padding: 16px; }
-.chara[hidden] { display: none; }
+.chara:not([open]) { display: none; }
 .chara-card { position: relative; display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: center; width: min(560px, 100%); padding: 18px 20px; animation: pop .35s cubic-bezier(.3, 1.6, .5, 1); }
 .chara-card img { width: 100%; filter: var(--sticker); user-select: none; }
 .chara-text { display: grid; gap: 6px; }
@@ -389,7 +393,10 @@ body { transition: background-color .4s; }
 
 /* ---------- 作品図鑑 ---------- */
 .dex { position: fixed; inset: 0; z-index: 44; display: grid; overflow-y: auto; overscroll-behavior: contain; background: rgba(43, 23, 16, .35); padding: 16px; }
-.dex[hidden] { display: none; }
+.dex:not([open]) { display: none; }
+/* <dialog> の既定の見た目を消し、画面全体を覆う幕として使う */
+dialog.dex, dialog.loot, dialog.chara, dialog.terminal { width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; color: inherit; }
+dialog.dex::backdrop, dialog.loot::backdrop, dialog.chara::backdrop, dialog.terminal::backdrop { background: transparent; }
 .dex-win { position: relative; width: min(760px, 100%); padding: 18px 18px 14px; animation: pop .35s cubic-bezier(.3, 1.6, .5, 1); }
 .dex-title { margin: 0; font: 400 22px var(--dot); color: #3f3f3f; }
 .dex-count { margin: 0 0 10px; font: 400 14px var(--dot); color: #3f3f3f; }

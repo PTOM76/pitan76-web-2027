@@ -13,9 +13,26 @@ function h(mixed $v): string {
     return htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-/** Font Awesome のアイコン。$name は fa- を除いた名前（xmark など）。ブランドのロゴは $style に 'brands' を渡す。 */
+/**
+ * Font Awesome のアイコンを SVG で埋め込む。$name は fa- を除いた名前（xmark など）。ブランドのロゴは $style に 'brands' を渡す。
+ * データは src/fa-icons.json（npm run fa-icons で作る）。ない名前は書き間違いとして例外を投げる。
+ */
 function icon(string $name, string $style = 'solid'): string {
-    return '<i class="fa-' . h($style) . ' fa-' . h($name) . '" aria-hidden="true"></i>';
+    [$w, $h, $d] = fa_icons()[$style][$name]
+        ?? throw new RuntimeException("icon not found: {$style}/{$name}（npm run fa-icons で src/fa-icons.json を作り直す）");
+    return svg_icon($w, $h, $d);
+}
+
+/** SVG のアイコン。高さは文字と同じ 1em で、幅は縦横比に合わせる。色は文字色を使う。 */
+function svg_icon(int $w, int $h, string $d): string {
+    return sprintf('<svg class="icon" viewBox="0 0 %d %d" width="%sem" height="1em" aria-hidden="true" focusable="false"><path d="%s"/></svg>',
+        $w, $h, round($w / $h, 3), h($d));
+}
+
+/** src/fa-icons.json の中身。 */
+function fa_icons(): array {
+    static $icons = null;
+    return $icons ??= json_data(ROOT . '/src/fa-icons.json');
 }
 
 /** スクリプト内に埋め込む JSON。</script> などで閉じられないようにする。 */

@@ -5,8 +5,8 @@
  * @var array $items
  */
 ?>
-<div class="dex" id="dex" hidden>
-  <div class="dex-win inv sk" role="dialog" aria-labelledby="dex-title">
+<dialog class="dex" id="dex" aria-labelledby="dex-title">
+  <div class="dex-win inv sk">
     <button type="button" class="loot-close" id="dex-close" aria-label="閉じる"><?= icon('xmark') ?></button>
     <h2 class="dex-title" id="dex-title">作品図鑑</h2>
     <p class="dex-count"><span id="dex-total"><?= count($items) ?></span>件中<span id="dex-found">0</span>件発見</p>
@@ -29,4 +29,4 @@
       <button type="button" class="dex-reset" id="dex-reset"><?= icon('rotate-left') ?> 記録をリセット</button>
     </div>
   </div>
-</div>
+</dialog>
