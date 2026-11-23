@@ -127,11 +127,11 @@ main, .footer { position: relative; z-index: 2; }
 /* ---------- works ---------- */
 .work { display: grid; grid-template-columns: 5fr 7fr; gap: 0 56px; align-items: center; min-height: 78vh; padding: 32px 0; }
 .work:nth-of-type(even) .work-text { order: 2; }
-.work-text { padding: 28px 30px; }
+.work-text { min-width: 0; padding: 28px 30px; }
 .work:nth-of-type(3n+2) .work-text { transform: rotate(-.6deg); }
 .work:nth-of-type(3n) .work-text { transform: rotate(.5deg); }
 .work-cat { margin: 0; font-size: 14px; font-weight: 700; color: var(--hair-deep); }
-.work h3 { font: 900 clamp(28px, 3.2vw, 44px)/1.15 var(--body); margin: 4px 0 14px; letter-spacing: -.02em; }
+.work h3 { font: 900 clamp(28px, 3.2vw, 44px)/1.15 var(--body); margin: 4px 0 14px; letter-spacing: -.02em; overflow-wrap: anywhere; }
 .work h3 a { text-decoration: none; }
 .work h3 a:hover { background: linear-gradient(transparent 60%, var(--eye) 60%); }
 .work-summary { font-weight: 700; margin: 0 0 6px; }
