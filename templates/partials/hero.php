@@ -18,7 +18,7 @@
       <?php endforeach; ?>
     </ol>
     <?php endif; ?>
-    <p class="hero-hint">背景のブロックは長押しで掘れます。色の粒が入ったブロックや絵の付いたブロックには、作品が埋まっています。<span class="hint-pc">Shift キーを押しながらドラッグすると、壊さずに回せます。</span></p>
+    <p class="hero-hint">背景のブロックは長押しで掘れます。色の粒が入ったブロックや絵の付いたブロックには、作品が埋まっています。<span class="hint-pc">右ボタンでドラッグすると回せます。Shift キーを押しながらドラッグすると動かせます。</span></p>
   </div>
   <div class="hero-sticker">
     <button class="sticker" type="button" id="pitan" aria-label="ぴたんをなでる">

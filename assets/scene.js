@@ -111,7 +111,8 @@ function makeBlock(work) {
     z: -2 - Math.random() * 12,
     size: 0.6 + Math.random() * 0.9,
     rot: new THREE.Vector3(Math.random() * 6, Math.random() * 6, 0),
-    dragX: 0, dragY: 0,
+    dragX: 0, dragY: 0,     // 右ドラッグで回した角度
+    moveX: 0, moveY: 0,     // Shift + ドラッグで動かした量（ワールド座標）
     spin: (Math.random() - 0.5) * 0.5,
     phase: Math.random() * 10,
     alive: 1,
@@ -168,12 +169,10 @@ crack.visible = false;
 const MINE_TIME = 0.6;
 let mining = null;        // { b, progress, stage }
 let pointerHeld = false;
-// 掴んでいるブロックと直前のカーソル位置。掴んだまま動かすとブロックが回る
+// 掴んでいるブロックと直前のカーソル位置
 let grabbed = null;
-// Shift を押している間は回すだけで掘らない
-let rotateOnly = false;
-addEventListener('keydown', (e) => { if (e.key === 'Shift') rotateOnly = true; });
-addEventListener('keyup', (e) => { if (e.key === 'Shift') rotateOnly = false; });
+// 押したときの操作。左の長押しで掘る、右ドラッグで回す、Shift を押しながらドラッグ（左右どちらでも）で動かす
+let mode = 'mine';
 const lastPt = { x: 0, y: 0 };
 
 // 破片
@@ -224,8 +223,16 @@ let broken = 0;
 
 addEventListener('pointermove', (e) => {
   if (pointerHeld && grabbed) {
-    grabbed.dragY += (e.clientX - lastPt.x) * 0.012;
-    grabbed.dragX += (e.clientY - lastPt.y) * 0.012;
+    const dx = e.clientX - lastPt.x, dy = e.clientY - lastPt.y;
+    if (mode === 'rotate') {
+      grabbed.dragY += dx * 0.012;
+      grabbed.dragX += dy * 0.012;
+    } else if (mode === 'move') {
+      // カーソルと同じ速さで動くよう、ブロックの奥行きでの 1px の長さを掛ける
+      const unit = viewHeightAt(grabbed.z) / innerHeight;
+      grabbed.moveX += dx * unit;
+      grabbed.moveY -= dy * unit;
+    }
   }
   lastPt.x = e.clientX; lastPt.y = e.clientY;
   mouseTarget.set(e.clientX / innerWidth - 0.5, e.clientY / innerHeight - 0.5);
@@ -233,12 +240,12 @@ addEventListener('pointermove', (e) => {
   ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
 });
 addEventListener('pointerdown', (e) => {
-  if (e.button !== 0 || overUI(e)) return;
+  if ((e.button !== 0 && e.button !== 2) || overUI(e)) return;
   grabbed = null;
   // タッチでは pointermove が先に来ないため、ここでも位置を更新する
   ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   lastPt.x = e.clientX; lastPt.y = e.clientY;
-  rotateOnly = e.shiftKey;
+  mode = e.shiftKey ? 'move' : e.button === 2 ? 'rotate' : 'mine';
   pointerHeld = true;
   // 長押ししている間に文字が選択されたり、スマホのメニューが開いたりしないようにする
   document.body.classList.add('holding');
@@ -252,8 +259,9 @@ const release = (e) => {
 };
 addEventListener('pointerup', release);
 addEventListener('pointercancel', release);
-addEventListener('blur', (e) => { rotateOnly = false; release(e); });
-addEventListener('contextmenu', (e) => { if (pointerHeld && (grabbed || hovered)) e.preventDefault(); });
+addEventListener('blur', release);
+// ブロックの上ではメニューを開かない（右ドラッグで回すため）
+addEventListener('contextmenu', (e) => { if (grabbed || hovered) e.preventDefault(); });
 
 // 初回の案内。まだ 1 つも掘ったことがなければ、少し待ってから画面内のブロックを 1 つ揺らし、吹き出しを付ける
 const nudgeEl = document.getElementById('nudge');
@@ -308,7 +316,7 @@ function breakBlock(b) {
   dispatchEvent(new CustomEvent('block-break', { detail: { count: broken, work: b.work } }));
 }
 function updateMining(dt) {
-  if (!pointerHeld || !hovered || rotateOnly) { stopMining(); return; }
+  if (!pointerHeld || !hovered || mode !== 'mine') { stopMining(); return; }
   if (!mining || mining.b !== hovered) {
     stopMining();
     mining = { b: hovered, progress: 0, stage: -1 };
@@ -383,8 +391,9 @@ function tick() {
   if (grabbed && grabbed.alive !== 1) grabbed = null;
   if (grabbed) hovered = grabbed;
   if (hovered !== prevHover) dispatchEvent(new CustomEvent('block-hover', { detail: hovered ? { work: hovered.work } : null }));
-  document.body.classList.toggle('on-block', !!hovered && !grabbed);
-  document.body.classList.toggle('grabbing', !!grabbed);
+  document.body.classList.toggle('on-block', !!hovered && (!grabbed || mode === 'mine'));
+  document.body.classList.toggle('grabbing', !!grabbed && mode === 'rotate');
+  document.body.classList.toggle('moving', !!grabbed && mode === 'move');
   if (grabbed) getSelection()?.removeAllRanges();   // 掴んで動かしたときに文字が選択されないようにする
   updateMining(dt);
 
@@ -402,7 +411,8 @@ function tick() {
     const hz = viewHeightAt(b.z);
     home.set(b.px * hz * camera.aspect * 0.5, -(sy / vh() - 0.5) * hz, b.z);
     home.y += Math.sin(bt * 0.7 + b.phase) * 0.25;
-    if (b.loadFaces && sy > -innerHeight * 0.5 && sy < innerHeight * 1.5) {
+    // 代表作の枠や索引の横に呼び出されたブロックは、元の位置が画面外でも読み込む
+    if (b.loadFaces && (b.slot || b.summonEl || (sy > -innerHeight * 0.5 && sy < innerHeight * 1.5))) {
       b.loadFaces();
       b.loadFaces = null;
     }
@@ -438,7 +448,17 @@ function tick() {
         scale = THREE.MathUtils.lerp(base, target, k);
       }
     }
+    // 代表作の枠や索引の横にいる間は、動かした位置と回した角度を元に戻していく（掴んでいる間は除く）
+    if (k > 0.5 && grabbed !== b) {
+      const back = Math.min(1, dt * 6);
+      b.moveX -= b.moveX * back;
+      b.moveY -= b.moveY * back;
+      b.dragX -= b.dragX * back;
+      b.dragY -= b.dragY * back;
+    }
     b.mesh.position.copy(home);
+    b.mesh.position.x += b.moveX;
+    b.mesh.position.y += b.moveY;
 
     const sp = bug ? 10 : 1;
     const idleX = b.rot.x + bt * b.spin * sp;
@@ -456,7 +476,11 @@ function tick() {
     if (b.alive < 1) {
       if (b.alive === 0) {
         b.respawn -= dt;
-        if (b.respawn <= 0) b.alive = 0.01;
+        if (b.respawn <= 0) {
+          // 復活したブロックは、動かした位置と回した角度を元に戻す
+          b.alive = 0.01;
+          b.moveX = b.moveY = b.dragX = b.dragY = 0;
+        }
       } else {
         b.alive = Math.min(1, b.alive + dt * 2.5);
       }
