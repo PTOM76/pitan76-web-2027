@@ -230,6 +230,7 @@ const mouse = new THREE.Vector2();
 const mouseTarget = new THREE.Vector2();
 const ndc = new THREE.Vector2(9, 9);
 const ray = new THREE.Raycaster();
+const targets = [];   // レイキャストの対象。毎フレーム配列を作らないよう使い回す
 // 要素の箱全体でブロックの操作を止める UI と、文字の上だけで止める文章を分ける。
 // 見出しや段落は横幅いっぱいに広がるため、箱で判定すると文字のない余白でもブロックを触れなくなる
 const UI = 'a,button,input,label,.sk,.work-text,.bar,.terminal,.loot,.chara,.dex,.courier,.toast,.spec,.inv,.filters';
@@ -414,9 +415,14 @@ function tick() {
   mouse.lerp(mouseTarget, 0.06);
   const docH = Math.max(document.documentElement.scrollHeight, innerHeight);
 
-  // ホバー判定
-  ray.setFromCamera(ndc, camera);
-  const hit = ray.intersectObjects(blocks.filter((b) => b.alive === 1).map((b) => b.mesh), false)[0];
+  // ホバー判定。カーソルが UI の上や画面外にある（ndc が範囲外）ときは判定しない
+  let hit = null;
+  if (Math.abs(ndc.x) <= 1 && Math.abs(ndc.y) <= 1) {
+    ray.setFromCamera(ndc, camera);
+    targets.length = 0;
+    for (const b of blocks) if (b.alive === 1) targets.push(b.mesh);
+    hit = ray.intersectObjects(targets, false)[0] ?? null;
+  }
   const prevHover = hovered;
   hovered = hit ? hit.object.userData.block : null;
   // 押した瞬間のブロックを掴む。掴んでいる間は、カーソルが外れてもそのブロックを掘り続ける
@@ -510,6 +516,18 @@ function tick() {
     b.mesh.position.copy(home);
     b.mesh.position.x += b.moveX;
     b.mesh.position.y += b.moveY;
+    // 投げたブロックが画面の外へ消えないよう、左右の端で跳ね返す。
+    // 元から端にはみ出して置かれているブロックは押し戻さない（動かした分だけを戻す）
+    if (grabbed !== b && b.moveX) {
+      const limit = Math.max(viewHeightAt(home.z) * camera.aspect / 2 - scale * 0.5, Math.abs(home.x));
+      const x = b.mesh.position.x;
+      if (Math.abs(x) > limit && Math.sign(b.moveX) === Math.sign(x)) {
+        const over = x - Math.sign(x) * limit;
+        b.moveX -= over;
+        b.mesh.position.x -= over;
+        if (Math.sign(b.velX) === Math.sign(x)) b.velX *= -0.5;
+      }
+    }
 
     const sp = bug ? 10 : 1;
     const idleX = b.rot.x + bt * b.spin * sp;

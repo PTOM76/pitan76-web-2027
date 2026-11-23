@@ -201,36 +201,54 @@ function icon_sources(array $w): Generator {
     }
 }
 
+/** ページの HTML を取得する。同じビルドの中では、同じページを 2 回取得しない。 */
+function page_html(string $url): ?string {
+    static $pages = [];
+    return $pages[$url] ??= http_get($url) ?? '';
+}
+
+/**
+ * HTML から $name のタグを探し、それぞれの属性を 属性名（小文字） => 値 の配列で返す。属性の順序は問わない。
+ * @return list<array<string, string>>
+ */
+function html_tags(string $html, string $name): array {
+    preg_match_all('~<' . $name . '\b([^>]*)>~i', $html, $tags);
+    return array_map(static function (string $attrs): array {
+        preg_match_all('~([\w:-]+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))~', $attrs, $m, PREG_SET_ORDER);
+        return array_column(array_map(
+            static fn($a) => [strtolower($a[1]), html_entity_decode(($a[2] ?? '') . ($a[3] ?? '') . ($a[4] ?? ''))],
+            $m,
+        ), 1, 0);
+    }, $tags[1]);
+}
+
 /**
  * ページの HTML から画像の URL を探す。$kind が 'og:image' なら OGP 画像、'icon' なら
  * apple-touch-icon を優先し、次にサイズの大きいアイコン。SVG は GD で読めないため除く。
  */
 function page_image(string $page, string $kind): ?string {
-    $html = http_get($page);
-    if ($html === null) return null;
+    $html = page_html($page);
     if ($kind === 'og:image') {
-        return preg_match('~<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)~i', $html, $m)
-            ? resolve_url($page, html_entity_decode($m[1])) : null;
+        $meta = array_find(html_tags($html, 'meta'), static fn($t) => ($t['property'] ?? '') === 'og:image' && ($t['content'] ?? '') !== '');
+        return $meta ? resolve_url($page, $meta['content']) : null;
     }
-    preg_match_all('~<link\b[^>]*>~i', $html, $tags);
     $best = null;
     $bestScore = -1;
-    foreach ($tags[0] as $tag) {
-        if (!preg_match('~rel=["\']([^"\']*icon[^"\']*)["\']~i', $tag, $rel)) continue;
-        if (!preg_match('~href=["\']([^"\']+)["\']~i', $tag, $href) || str_ends_with(strtolower(parse_url($href[1], PHP_URL_PATH) ?? ''), '.svg')) continue;
-        $size = preg_match('~sizes=["\'](\d+)x~i', $tag, $s) ? (int)$s[1] : 16;
-        $score = (str_contains(strtolower($rel[1]), 'apple-touch-icon') ? 1000 : 0) + $size;
-        if ($score > $bestScore) [$best, $bestScore] = [resolve_url($page, html_entity_decode($href[1])), $score];
+    foreach (html_tags($html, 'link') as $t) {
+        $rel = strtolower($t['rel'] ?? '');
+        $href = $t['href'] ?? '';
+        if (!str_contains($rel, 'icon') || $href === '' || str_ends_with(strtolower(parse_url($href, PHP_URL_PATH) ?? ''), '.svg')) continue;
+        $score = (str_contains($rel, 'apple-touch-icon') ? 1000 : 0) + (int)($t['sizes'] ?? 16);
+        if ($score > $bestScore) [$best, $bestScore] = [resolve_url($page, $href), $score];
     }
     return $best;
 }
 
 /** ページの Web アプリ マニフェストから、いちばん大きい PNG のアイコン（purpose が any のもの）を探す。 */
 function manifest_icon(string $page): ?string {
-    $html = http_get($page) ?? '';
-    if (!preg_match('~<link\b[^>]*rel=["\']manifest["\'][^>]*href=["\']([^"\']+)~i', $html, $m)
-        && !preg_match('~<link\b[^>]*href=["\']([^"\']+)["\'][^>]*rel=["\']manifest["\']~i', $html, $m)) return null;
-    $url = resolve_url($page, html_entity_decode($m[1]));
+    $link = array_find(html_tags(page_html($page), 'link'), static fn($t) => strtolower($t['rel'] ?? '') === 'manifest' && ($t['href'] ?? '') !== '');
+    if (!$link) return null;
+    $url = resolve_url($page, $link['href']);
     $icons = json_decode(http_get($url) ?? 'null', true)['icons'] ?? [];
     $png = array_filter($icons, static fn($i) => is_array($i) && ($i['type'] ?? '') === 'image/png'
         && !str_contains($i['purpose'] ?? 'any', 'maskable'));
