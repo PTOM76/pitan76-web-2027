@@ -1,13 +1,13 @@
 {
   "worksUrl": "https://raw.githubusercontent.com/PTOM76/works-info/main/list.json",
   "categories": {
-    "mcmod": "Minecraft Mod",
-    "repomod": "Minecraft Mod",
+    "mcmod": "Minecraft",
+    "repomod": "R.E.P.O Mod",
     "web": "Web",
     "app": "App",
     "pukiwiki": "PukiWiki",
     "pukiwikiskin": "PukiWiki",
-    "mcplugin": "MC Plugin",
+    "mcplugin": "Minecraft",
     "mmdplugin": "MMD Plugin",
     "chrome-extension": "Extension",
     "misc": "Misc"
