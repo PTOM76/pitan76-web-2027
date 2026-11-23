@@ -113,6 +113,8 @@ function makeBlock(work) {
     rot: new THREE.Vector3(Math.random() * 6, Math.random() * 6, 0),
     dragX: 0, dragY: 0,     // 右ドラッグで回した角度
     moveX: 0, moveY: 0,     // Shift + ドラッグで動かした量（ワールド座標）
+    velX: 0, velY: 0,       // 離したあとも滑り続ける速さ（ワールド座標 / 秒）
+    spinX: 0, spinY: 0,     // 離したあとも回り続ける速さ（ラジアン / 秒）
     spin: (Math.random() - 0.5) * 0.5,
     phase: Math.random() * 10,
     alive: 1,
@@ -173,7 +175,9 @@ let pointerHeld = false;
 let grabbed = null;
 // 押したときの操作。左の長押しで掘る、右ドラッグで回す、Shift を押しながらドラッグ（左右どちらでも）で動かす
 let mode = 'mine';
-const lastPt = { x: 0, y: 0 };
+const lastPt = { x: 0, y: 0, t: 0 };
+const MAX_VEL = 30;
+const towards = (v, goal, k) => v + (goal - v) * k;
 
 // 破片
 const shardGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
@@ -224,17 +228,24 @@ let broken = 0;
 addEventListener('pointermove', (e) => {
   if (pointerHeld && grabbed) {
     const dx = e.clientX - lastPt.x, dy = e.clientY - lastPt.y;
+    // 直前の動きの速さをなめらかに記録し、離したときの勢いにする
+    const sec = Math.max(0.008, (e.timeStamp - lastPt.t) / 1000);
+    const clampVel = (v) => THREE.MathUtils.clamp(v, -MAX_VEL, MAX_VEL);
     if (mode === 'rotate') {
       grabbed.dragY += dx * 0.012;
       grabbed.dragX += dy * 0.012;
+      grabbed.spinY = towards(grabbed.spinY, clampVel(dx * 0.012 / sec), 0.4);
+      grabbed.spinX = towards(grabbed.spinX, clampVel(dy * 0.012 / sec), 0.4);
     } else if (mode === 'move') {
       // カーソルと同じ速さで動くよう、ブロックの奥行きでの 1px の長さを掛ける
       const unit = viewHeightAt(grabbed.z) / innerHeight;
       grabbed.moveX += dx * unit;
       grabbed.moveY -= dy * unit;
+      grabbed.velX = towards(grabbed.velX, clampVel(dx * unit / sec), 0.4);
+      grabbed.velY = towards(grabbed.velY, clampVel(-dy * unit / sec), 0.4);
     }
   }
-  lastPt.x = e.clientX; lastPt.y = e.clientY;
+  lastPt.x = e.clientX; lastPt.y = e.clientY; lastPt.t = e.timeStamp;
   mouseTarget.set(e.clientX / innerWidth - 0.5, e.clientY / innerHeight - 0.5);
   if (overUI(e)) { ndc.set(9, 9); return; }
   ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
@@ -242,6 +253,7 @@ addEventListener('pointermove', (e) => {
 addEventListener('pointerdown', (e) => {
   if ((e.button !== 0 && e.button !== 2) || overUI(e)) return;
   grabbed = null;
+  lastPt.t = e.timeStamp;
   // タッチでは pointermove が先に来ないため、ここでも位置を更新する
   ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   lastPt.x = e.clientX; lastPt.y = e.clientY;
@@ -451,10 +463,24 @@ function tick() {
     // 代表作の枠や索引の横にいる間は、動かした位置と回した角度を元に戻していく（掴んでいる間は除く）
     if (k > 0.5 && grabbed !== b) {
       const back = Math.min(1, dt * 6);
+      b.velX = b.velY = b.spinX = b.spinY = 0;
       b.moveX -= b.moveX * back;
       b.moveY -= b.moveY * back;
       b.dragX -= b.dragX * back;
       b.dragY -= b.dragY * back;
+    }
+    // 慣性。掴んでいる間は、止めたまま離したときに飛ばないよう勢いを早めに落とす
+    if (grabbed === b) {
+      const hold = Math.exp(-dt * 8);
+      b.velX *= hold; b.velY *= hold; b.spinX *= hold; b.spinY *= hold;
+    } else if (b.velX || b.velY || b.spinX || b.spinY) {
+      b.moveX += b.velX * dt;
+      b.moveY += b.velY * dt;
+      b.dragX += b.spinX * dt;
+      b.dragY += b.spinY * dt;
+      const friction = Math.exp(-dt * 3);
+      b.velX *= friction; b.velY *= friction; b.spinX *= friction; b.spinY *= friction;
+      if (Math.hypot(b.velX, b.velY, b.spinX, b.spinY) < 0.01) b.velX = b.velY = b.spinX = b.spinY = 0;
     }
     b.mesh.position.copy(home);
     b.mesh.position.x += b.moveX;
@@ -469,7 +495,8 @@ function tick() {
     b.mesh.rotation.set(
       THREE.MathUtils.lerp(idleX, showX, k) + (b.dragX ?? 0),
       THREE.MathUtils.lerp(idleY, showY, k) + (b.dragY ?? 0),
-      THREE.MathUtils.lerp(0, 0.08, k) + (b === nudge && !reduced ? wobble(clock.elapsedTime) : 0),
+      THREE.MathUtils.lerp(0, 0.08, k) + (b === nudge && !reduced ? wobble(clock.elapsedTime) : 0)
+        - THREE.MathUtils.clamp(b.velX * 0.03, -0.35, 0.35),   // 動いている方向へ少し傾ける
     );
 
     b.hover += ((hovered === b ? 1 : 0) - b.hover) * 0.2;
@@ -480,6 +507,7 @@ function tick() {
           // 復活したブロックは、動かした位置と回した角度を元に戻す
           b.alive = 0.01;
           b.moveX = b.moveY = b.dragX = b.dragY = 0;
+          b.velX = b.velY = b.spinX = b.spinY = 0;
         }
       } else {
         b.alive = Math.min(1, b.alive + dt * 2.5);

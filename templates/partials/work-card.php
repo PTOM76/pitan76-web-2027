@@ -14,7 +14,7 @@ $tag = $loot ? 'h2' : 'h1';
 <<?= $tag ?> class="card-name"><?= h($w['name']) ?></<?= $tag ?>>
 <small class="card-meta"><?= h(implode(' · ', array_filter([$w['cat'], $w['year']]))) ?></small>
 <?php if ($w['desc']): ?><p><?= h($w['desc']) ?></p><?php endif; ?>
-<?php if ($w['note']): ?><div class="loot-note"><span>つくった理由</span><p><?= h($w['note']) ?></p></div><?php endif; ?>
+<?php if ($w['note']): ?><p class="loot-note"><?= h($w['note']) ?></p><?php endif; ?>
 <?php if ($spec): ?>
 <dl class="loot-spec">
   <?php foreach ($spec as $k => $v): ?><dt><?= h($k) ?></dt><dd><?= h($v) ?></dd><?php endforeach; ?>

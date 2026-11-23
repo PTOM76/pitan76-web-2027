@@ -57,7 +57,7 @@ main, .footer { position: relative; z-index: 2; }
 .bar-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; font: 400 17px var(--dot); white-space: nowrap; }
 .bar-logo img { image-rendering: pixelated; }
 
-.bar-coords { margin: 0; font: 12px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.bar-coords { margin: 0 0 0 14px; padding-left: 14px; border-left: 1px solid var(--ink-2); font: 12px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .bar nav { display: flex; margin-left: auto; height: 100%; }
 .bar nav a { display: grid; place-items: center; padding: 0 16px; text-decoration: none; font-weight: 700; font-size: 14px; border-left: 2px solid var(--ink); }
 .bar nav a:hover { background: var(--hair); }
@@ -116,7 +116,8 @@ main, .footer { position: relative; z-index: 2; }
 .chatlog time { color: var(--hair); }
 .chatlog a { color: var(--eye); text-decoration: none; }
 .chatlog a:hover { text-decoration: underline; }
-.chatlog li:nth-child(3) { opacity: .8; }
+/* 古い行ほど薄くする。背景まで薄めると後ろのブロックが透けるため、文字だけを薄くする */
+.chatlog li:nth-child(3) > * , .chatlog li:nth-child(3) { --fade: .8; }
 .chatlog li:nth-child(4) { opacity: .6; }
 
 /* ---------- section ---------- */
@@ -276,9 +277,7 @@ body.holding { -webkit-user-select: none; user-select: none; -webkit-touch-callo
 .loot-card p { margin: 0; font-size: 14px; color: var(--ink-2); }
 .loot-close { position: absolute; top: 6px; right: 6px; z-index: 1; width: 32px; height: 32px; border: 2px solid var(--ink); background: var(--panel); font: 700 18px/1 var(--mono); cursor: pointer; }
 .loot-close:hover { background: var(--ear); }
-.loot-note { margin: 8px 0 2px; }
-.loot-note span { font: 400 13px var(--dot); color: var(--ink-2); }
-.loot-note p { color: var(--ink); }
+.loot-card p.loot-note { margin-top: 8px; }
 .loot-spec { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 8px 0 0; font-size: 13px; }
 .loot-spec dt { color: var(--ink-2); }
 .loot-spec dd { margin: 0; font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
@@ -357,7 +356,7 @@ body.bug .ht-en { animation: glitch .25s steps(2) infinite; }
 /* ---------- 夜（ダークモード） ---------- */
 html[data-theme="dark"] {
   --sky: #121829; --grid: #1b2440; --panel: #1f1b26; --ink: #efe3d8; --ink-2: #b4a59b;
-  --hair-deep: #8cc6ff; --veil: rgba(18, 24, 41, .85); --shadow: 4px 5px 0 #000;
+  --hair-deep: #8cc6ff; --veil: rgba(18, 24, 41, .93); --shadow: 4px 5px 0 #000;
   color-scheme: dark;
 }
 html[data-theme="dark"] .loot-card, html[data-theme="dark"] .chara-card { --sk-shadow: 7px 8px 0 #000; }
@@ -365,6 +364,10 @@ html[data-theme="dark"] .toast { background: #2a2433; color: var(--ink); }
 html[data-theme="dark"] .sticker img, html[data-theme="dark"] .courier img, html[data-theme="dark"] .chara-card img { filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff) drop-shadow(5px 6px 0 rgba(0, 0, 0, .8)); }
 html[data-theme="dark"] .courier-log { background: #000; color: var(--ink); }
 html[data-theme="dark"] .chatlog li { background: rgba(0, 0, 0, .6); }
+/* PITAN は昼と色を反転する。濃い背景に濃い文字が沈まないようにする */
+html[data-theme="dark"] .ht-en { color: var(--ink); -webkit-text-stroke-color: #000; text-shadow: 6px 7px 0 var(--hair-deep); }
+/* 数字の帯は文字の下半分にしかかからず明るい文字が読みにくいため、夜は帯をなくして文字を黄色にする */
+html[data-theme="dark"] .hero-facts .num { color: var(--eye); background: none; }
 ::selection, .bar nav a:hover, .bar-sound:hover, .bar-theme:hover, .bar-dex:hover, .bar-term, .index a:hover, .block-tip.has-work,
 .loot-get, .loot-links a, .work-links a:first-child, .loot-close:hover, .term-bar button, .filter:hover, .index-more { color: var(--on); }
 body { transition: background-color .4s; }
