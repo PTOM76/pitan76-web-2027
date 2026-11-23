@@ -83,18 +83,27 @@ foreach ($config['images'] +array_fill_keys(array_keys($characters), 480) as $na
     $png = cached("$cache/img/$name-$width.png", [$src], static fn($to) => resize_png($src, $to, $width));
     copy_file($png, "$out/assets/img/$name.png");
 }
-$faviconSrc = ROOT . '/assets/img/favicon-src.png';
+// ファビコン（丸いドット絵）と OGP 画像は assets/img/ に保存してコミットする。材料が変わったときだけ作り直す
+$img = ROOT . '/assets/img';
+$faviconSrc = "$img/favicon-src.png";
 foreach ($config['favicons'] as $name => $size) {
-    $png = cached("$cache/img/$name.png", [$faviconSrc, ROOT . '/src/image.php'], static fn($to) => round_pixel_icon($faviconSrc, $to, $size));
-    copy_file($png, "$out/assets/img/$name.png");
+    generated("$img/$name.png", [$faviconSrc, ROOT . '/src/image.php'], ['size' => $size],
+        static fn($to) => round_pixel_icon($faviconSrc, $to, $size));
+    copy_file("$img/$name.png", "$out/assets/img/$name.png");
 }
-// OGP 画像。文字は DotGothic16 で描く（取得できなければ文字なし）
-$font = "$cache/fonts/DotGothic16.ttf";
-if (!is_file($font) && ($raw = http_get($config['ogFont'])) !== null) write_file($font, $raw);
-$og = cached("$cache/img/og.png", [ROOT . '/assets/img/pitan.png', ROOT . '/data/site.json', ROOT . '/src/image.php'],
-    static fn($to) => og_image($to, ROOT . '/assets/img/pitan.png', is_file($font) ? $font : null, 'ぴたん', $site['title'], $site['lead']));
-copy_file($og, "$out/assets/img/og.png");
-copy_file("$cache/img/favicon-32.png", "$out/favicon.ico");   // /favicon.ico を直接読むブラウザ向け（PNG のまま）
+copy_file("$img/favicon-32.png", "$out/favicon.ico");   // /favicon.ico を直接読むブラウザ向け（PNG のまま）
+
+// OGP 画像。文字は DotGothic16 で描く。フォントは作り直すときだけ取得し、取得できなければ文字なしで作って次回やり直す
+$og = ['name' => 'ぴたん', 'title' => $site['title'], 'lead' => $site['lead']];
+generated("$img/og.png", ["$img/pitan.png", ROOT . '/src/image.php'], $og, static function (string $to) use ($cache, $config, $img, $og): bool {
+    $font = "$cache/fonts/DotGothic16.ttf";
+    if (!is_file($font) && ($raw = http_get($config['ogFont'])) !== null) write_file($font, $raw);
+    $hasFont = is_file($font);
+    if (!$hasFont) warn('OGP font could not be fetched; og.png is drawn without text');
+    og_image($to, "$img/pitan.png", $hasFont ? $font : null, $og['name'], $og['title'], $og['lead']);
+    return $hasFont;
+});
+copy_file("$img/og.png", "$out/assets/img/og.png");
 foreach (array_unique(array_merge([], ...array_values($icons))) as $file) {
     copy_file("$cache/icons/$file", "$out/assets/icons/$file");
 }

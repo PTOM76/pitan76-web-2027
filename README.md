@@ -23,7 +23,7 @@ npm run build   # php build.php と同じ
 `dist/` に出力する。ビルドの最初に `data/` の JSON を検証し、必要な項目が足りなければ内容を表示して終了する。
 
 ```sh
-npm run check   # PHP・JavaScriptの構文チェックとビルド
+npm run check   # PHP・JavaScriptの構文チェック、PHPの単体テスト、ビルド
 ```
 
 | 環境変数 | 内容 |
@@ -34,6 +34,20 @@ npm run check   # PHP・JavaScriptの構文チェックとビルド
 
 GitHub Actionsでは `PITAN_BASE` と `PITAN_URL` をGitHub Pagesの設定から自動で渡す。
 
+## テスト
+
+```sh
+npm test          # PHPの単体テストとブラウザテスト
+npm run test:e2e  # ブラウザテストのみ
+```
+
+| 種類 | 場所 | 内容 |
+| --- | --- | --- |
+| PHPの単体テスト | `tests/php/run.php` | `src/` の関数を確認する。依存はなく、`php tests/php/run.php` でも実行できる |
+| ブラウザテスト | `tests/e2e/` | Playwrightで、ブロックの当たり判定、画面の開閉、実績の保存など、操作で起きる不具合を確認する |
+
+ブラウザテストは開発用のビルドで `dist/` を作り、PHPの内蔵サーバーで配信して、手元のChromeで開く。初回は `npm install` が必要。テストのデータには実データを使わず、架空の値を使用する。
+
 ## 構成
 
 | パス | 内容 |
@@ -41,7 +55,7 @@ GitHub Actionsでは `PITAN_BASE` と `PITAN_URL` をGitHub Pagesの設定から
 | `data/site.json` | プロフィール、スキル、経歴、資格 |
 | `data/projects.json` | 代表作。`work` は works-info の作品ID |
 | `data/config.json` | 作品データの取得元、カテゴリ名、技術スタックのロゴ、画像サイズなど |
-| `data/characters.json` | 作品を届けるキャラクター。キーと同名の画像を `assets/img/` に置く |
+| `data/characters.json` | 作品を届けるキャラクター。キーと同名の画像を `assets/img/` に置く。選び方は「作品を届けるキャラクター」を参照 |
 | `data/notes.json` | 作品ごとの「つくった理由」。作品ID => 文章 |
 | `src/` | ビルド処理（作品データ、画像、ロゴ、検証、テンプレートの描画） |
 | `templates/` | ページのテンプレート（トップの `index.php`、作品詳細の `work.php`、`404.php`） |
@@ -49,13 +63,22 @@ GitHub Actionsでは `PITAN_BASE` と `PITAN_URL` をGitHub Pagesの設定から
 | `assets/style.css` | スタイル |
 | `assets/main.js` | ページの演出（ターミナル、実績、作品索引など） |
 | `assets/scene.js` | Three.jsによる作品ブロックの3D表現 |
-| `assets/img/` | キャラクター画像（透過PNG） |
+| `assets/img/` | キャラクター画像（透過PNG）と、ビルドで生成する画像（ファビコン、OGP画像）。生成する画像は材料のハッシュを `generated.json` に記録し、材料が変わったときだけ作り直す |
 | `assets/img/works/` | 作品のアイコン。ビルド時にModrinth、CurseForge、サイトのfaviconなどから取得して保存する。取得できなかった作品は `missing.txt` に記録し、再取得しない |
 | `build.php` | ビルドの入口。データの読み込みから出力までの流れ |
-| `scripts/check.mjs` | 構文チェック |
+| `scripts/check.mjs` | 構文チェック、PHPの単体テスト、ビルド |
 | `scripts/dev.mjs` | 開発サーバー |
 
 作品ごとの詳細ページは `dist/works/作品ID.html` に出力する。ブロックを掘り当てたときのカードも同じ部品（`templates/partials/work-card.php`）から `dist/works/作品ID.card.html` に出力し、表示するときに1件ずつ読み込む。作品一覧はビルド時に [works-info](https://github.com/PTOM76/works-info) の `list.json` から取得し、作品画像をブロック用とカード用のサムネイルに変換して `dist/assets/works/` に出力する。
+
+## 作品を届けるキャラクター
+
+ブロックを掘って作品が出ると、キャラクターが作品を届ける。届けるキャラクターは次の順に決める。
+
+1. `data/characters.json` の `categories` に作品のカテゴリを持つキャラクターがいれば、必ずそのキャラクターが届ける（現在はHTTPプロトコルさんがWebとExtensionを担当する）
+2. 担当がいなければ、全員（担当を持つキャラクターも含む）から等確率で選ぶ
+
+担当を持つキャラクターは担当外の抽選にも入るため、ほかのキャラクターより多く登場する。ターミナルの `ftp get`、`smtp send` では、コマンドに対応するキャラクターが届ける。
 
 ## 隠し要素
 

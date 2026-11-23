@@ -81,6 +81,26 @@ function cached(string $cached, array $sources, Closure $make): string {
     return $cached;
 }
 
+/**
+ * リポジトリに保存する生成画像（ファビコン、OGP 画像など）を、材料が変わったときだけ作り直す。
+ * 材料（$sources の中身と $params）のハッシュを $file と同じフォルダの generated.json に記録して比べる。
+ * 更新日時で比べないのは、git の checkout で日時が変わり、CI で毎回作り直してしまうため。
+ * $make が false を返したとき（材料が足りず仮の画像を作ったときなど）は記録せず、次のビルドで作り直す。
+ */
+function generated(string $file, array $sources, array $params, Closure $make): string {
+    $manifestFile = dirname($file) . '/generated.json';
+    $manifest = is_file($manifestFile) ? json_data($manifestFile) : [];
+    $hash = md5(implode("\0", array_map(static fn($s) => md5_file($s), $sources)) . json_encode($params));
+    $name = basename($file);
+    if (!is_file($file) || ($manifest[$name] ?? null) !== $hash) {
+        if ($make($file) === false) return $file;
+        $manifest[$name] = $hash;
+        ksort($manifest);
+        write_file($manifestFile, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    }
+    return $file;
+}
+
 function rrmdir(string $dir): void {
     if (!is_dir($dir)) return;
     $files = new RecursiveIteratorIterator(
