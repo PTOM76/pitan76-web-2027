@@ -135,14 +135,14 @@ function category_counts(array $items): array {
 }
 
 /**
- * 画像のない作品のアイコンを取得し、64px の PNG にして $dir に保存する。返り値は 作品 ID => ファイル名。
+ * 作品のアイコンを取得し、64px の PNG にして $dir に保存する。返り値は 作品 ID => ファイル名。
+ * 図鑑ではアイコンを、ブロックの面では作品画像を優先して使う。
  * 取得できなかった作品は "ID.none" を置き、次のビルドで取得し直さない（やり直すときは $dir を削除する）。
  */
 function work_icons(array $works, string $dir): array {
     ensure_dir($dir);
     $out = [];
     foreach ($works as $w) {
-        if ($w['custom']['images'] ?? []) continue;
         $id = slug($w['id']);
         $file = "$dir/$id.png";
         if (!is_file($file) && !is_file("$dir/$id.none")) {
