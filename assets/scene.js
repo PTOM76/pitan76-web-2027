@@ -95,6 +95,27 @@ function loadFaces(work, mats) {
   }));
 }
 
+// 作品のアイコンを、石のブロックの中央に貼った面にする
+function loadIcon(work, mat) {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d');
+    g.imageSmoothingEnabled = false;
+    g.drawImage(mat.map.image, 0, 0, 128, 128);
+    g.imageSmoothingEnabled = true;
+    g.fillStyle = 'rgba(22,21,20,.55)';
+    g.fillRect(24, 24, 84, 84);
+    g.drawImage(img, 20, 20, 84, 84);
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    mat.map = t;
+    mat.needsUpdate = true;
+  };
+  img.src = work.icon;
+}
+
 function makeBlock(work) {
   // 作品入りのブロックは、画像を読み込むまで鉱石の見た目にする
   const faces = work?.thumb ? Math.max(1, work.faces || 1) : 1;
@@ -121,7 +142,7 @@ function makeBlock(work) {
     respawn: 0,
     hover: 0,
     // 画面に入ったときに一度だけ画像を読み込む
-    loadFaces: work?.thumb && !lowData ? () => loadFaces(work, mats) : null,
+    loadFaces: lowData ? null : work?.thumb ? () => loadFaces(work, mats) : work?.icon ? () => loadIcon(work, mats[0]) : null,
   };
   mesh.userData.block = b;
   blocks.push(b);

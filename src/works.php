@@ -63,10 +63,11 @@ function normalize_works(array $works): array {
 /**
  * テンプレートと JS で使う作品データを作る。
  * @param array $thumbs work_thumbs() の返り値
+ * @param array $icons  work_icons() の返り値
  * @param array $notes  作品 ID => つくった理由
  */
-function build_items(array $works, array $thumbs, array $notes, array $config, array $featuredIds): array {
-    return array_map(static function (array $w) use ($thumbs, $notes, $config, $featuredIds): array {
+function build_items(array $works, array $thumbs, array $icons, array $notes, array $config, array $featuredIds): array {
+    return array_map(static function (array $w) use ($thumbs, $icons, $notes, $config, $featuredIds): array {
         $id = $w['id'];
         $thumb = $thumbs[$id] ?? null;
         $site = array_filter($w['site'] ?? [], static fn($u) => is_string($u) && str_starts_with($u, 'http'));
@@ -86,6 +87,7 @@ function build_items(array $works, array $thumbs, array $notes, array $config, a
             'tags' => $w['tag'] ?? [],
             'thumb' => $thumb ? "assets/works/{$thumb['file']}" : null,
             'faces' => $thumb['faces'] ?? 0,
+            'icon' => isset($icons[$id]) ? "assets/works/icons/{$icons[$id]}" : null,
             'version' => $w['version'] ?? '',
             'license' => $w['license'] ?? '',
             'mc' => $w['custom']['mcversion'] ?? '',
@@ -130,4 +132,107 @@ function category_counts(array $items): array {
     $cats = array_count_values(array_column($items, 'cat'));
     arsort($cats);
     return $cats;
+}
+
+/**
+ * 画像のない作品のアイコンを取得し、64px の PNG にして $dir に保存する。返り値は 作品 ID => ファイル名。
+ * 取得できなかった作品は "ID.none" を置き、次のビルドで取得し直さない（やり直すときは $dir を削除する）。
+ */
+function work_icons(array $works, string $dir): array {
+    ensure_dir($dir);
+    $out = [];
+    foreach ($works as $w) {
+        if ($w['custom']['images'] ?? []) continue;
+        $id = slug($w['id']);
+        $file = "$dir/$id.png";
+        if (!is_file($file) && !is_file("$dir/$id.none")) {
+            $img = array_find_value(icon_sources($w), static fn(string $url) => $url === '' ? null : decode_icon(http_get($url)));
+            if ($img) {
+                $res = transparent_canvas(64, 64);
+                imagecopyresampled($res, $img, 0, 0, 0, 0, 64, 64, imagesx($img), imagesy($img));
+                imagepng($res, $file, 9);
+            } else {
+                touch("$dir/$id.none");
+                warn("icon not found: {$w['id']}");
+            }
+        }
+        if (is_file($file)) $out[$w['id']] = "$id.png";
+    }
+    return $out;
+}
+
+/** $items から $fn が null 以外を返した最初の値。 */
+function array_find_value(iterable $items, Closure $fn): mixed {
+    foreach ($items as $item) {
+        if (($v = $fn($item)) !== null) return $v;
+    }
+    return null;
+}
+
+/**
+ * 作品のアイコンの候補 URL を、優先する順に返す。必要になるまで取得しないよう、ジェネレーターにする。
+ * Mod は Modrinth、CurseForge（CFWidget）、ModParks の順。サイトは favicon、Chrome 拡張はストアの画像。
+ */
+function icon_sources(array $w): Generator {
+    $site = $w['site'] ?? [];
+    if (preg_match('~modrinth\.com/\w+/([^/?#]+)~', $site['modrinth'] ?? '', $m)) {
+        yield json_decode(http_get("https://api.modrinth.com/v2/project/$m[1]") ?? 'null', true)['icon_url'] ?? '';
+    }
+    if ($cf = $w['custom']['cf_projectid'] ?? null) {
+        yield json_decode(http_get("https://api.cfwidget.com/$cf") ?? 'null', true)['thumbnail'] ?? '';
+    }
+    foreach ([$site['modparks'] ?? null, $site['chromewebstore'] ?? null] as $page) {
+        if ($page) yield page_image($page, 'og:image') ?? '';
+    }
+    if ($home = $site['website'] ?? null) {
+        yield page_image($home, 'icon') ?? '';
+        yield url_origin($home) . '/favicon.ico';
+    }
+}
+
+/**
+ * ページの HTML から画像の URL を探す。$kind が 'og:image' なら OGP 画像、'icon' なら
+ * apple-touch-icon を優先し、次にサイズの大きいアイコン。SVG は GD で読めないため除く。
+ */
+function page_image(string $page, string $kind): ?string {
+    $html = http_get($page);
+    if ($html === null) return null;
+    if ($kind === 'og:image') {
+        return preg_match('~<meta[^>]+property=["\']og:image["\'][^>]+content=["\']([^"\']+)~i', $html, $m)
+            ? resolve_url($page, html_entity_decode($m[1])) : null;
+    }
+    preg_match_all('~<link\b[^>]*>~i', $html, $tags);
+    $best = null;
+    $bestScore = -1;
+    foreach ($tags[0] as $tag) {
+        if (!preg_match('~rel=["\']([^"\']*icon[^"\']*)["\']~i', $tag, $rel)) continue;
+        if (!preg_match('~href=["\']([^"\']+)["\']~i', $tag, $href) || str_ends_with(strtolower(parse_url($href[1], PHP_URL_PATH) ?? ''), '.svg')) continue;
+        $size = preg_match('~sizes=["\'](\d+)x~i', $tag, $s) ? (int)$s[1] : 16;
+        $score = (str_contains(strtolower($rel[1]), 'apple-touch-icon') ? 1000 : 0) + $size;
+        if ($score > $bestScore) [$best, $bestScore] = [resolve_url($page, html_entity_decode($href[1])), $score];
+    }
+    return $best;
+}
+
+/** 取得した画像を GD 画像にする。ICO は中に PNG が入っていれば読む。読めなければ null。 */
+function decode_icon(?string $raw): ?GdImage {
+    if ($raw === null || $raw === '') return null;
+    $png = strpos($raw, "\x89PNG");
+    if (str_starts_with($raw, "\0\0\1\0") && $png !== false) $raw = substr($raw, $png);
+    return @imagecreatefromstring($raw) ?: null;
+}
+
+function url_origin(string $url): string {
+    $u = parse_url($url);
+    return "{$u['scheme']}://{$u['host']}" . (isset($u['port']) ? ":{$u['port']}" : '');
+}
+
+/** ページ内の相対 URL を絶対 URL にする。 */
+function resolve_url(string $base, string $href): string {
+    return match (true) {
+        (bool)preg_match('~^https?://~i', $href) => $href,
+        str_starts_with($href, '//') => parse_url($base, PHP_URL_SCHEME) . ':' . $href,
+        str_starts_with($href, '/') => url_origin($base) . $href,
+        default => url_origin($base) . preg_replace('~[^/]*$~', '', parse_url($base, PHP_URL_PATH) ?: '/') . $href,
+    };
 }

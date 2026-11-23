@@ -43,7 +43,8 @@ if ($errors) {
 $works = normalize_works(fetch_works($config['worksUrl'], "$cache/works.json", $dev));
 $thumbs = work_thumbs($works, "$cache/works");
 $icons = skill_icons($site['skills'], $config, "$cache/icons");
-$items = build_items($works, $thumbs, $notes, $config, array_column($projects, 'work'));
+$workIcons = work_icons($works, "$cache/works/icons");
+$items = build_items($works, $thumbs, $workIcons, $notes, $config, array_column($projects, 'work'));
 $byId = array_column($items, null, 'id');
 
 $projects = array_map(static function (array $p) use ($byId): array {
@@ -89,6 +90,9 @@ copy_file($og, "$out/assets/img/og.png");
 copy_file("$cache/img/favicon-32.png", "$out/favicon.ico");   // /favicon.ico を直接読むブラウザ向け（PNG のまま）
 foreach (array_unique(array_merge([], ...array_values($icons))) as $file) {
     copy_file("$cache/icons/$file", "$out/assets/icons/$file");
+}
+foreach ($workIcons as $file) {
+    copy_file("$cache/works/icons/$file", "$out/assets/works/icons/$file");
 }
 foreach ($thumbs as $t) {
     foreach (glob("$cache/works/{$t['file']}{,-w,-[2-6]}.jpg", GLOB_BRACE) as $f) {

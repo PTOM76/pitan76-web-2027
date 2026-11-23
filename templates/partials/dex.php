@@ -16,6 +16,8 @@
           <span class="dex-q" aria-hidden="true">?</span>
           <?php if ($w['thumb']): ?>
             <img class="dex-img" data-src="<?= h($w['thumb']) ?>.jpg" alt="" draggable="false">
+          <?php elseif ($w['icon']): ?>
+            <img class="dex-img dex-icon" data-src="<?= h($w['icon']) ?>" alt="" draggable="false">
           <?php else: ?>
             <span class="slot-mark dex-img" aria-hidden="true"><?= h(substr(preg_replace('/[^A-Za-z0-9]/', '', $w['name']), 0, 2)) ?: icon('cube') ?></span>
           <?php endif; ?>

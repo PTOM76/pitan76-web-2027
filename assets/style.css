@@ -289,6 +289,10 @@ body.holding { -webkit-user-select: none; user-select: none; -webkit-touch-callo
 .loot-card p { margin: 0; font-size: 14px; color: var(--ink-2); }
 .loot-close { position: absolute; top: 6px; right: 6px; z-index: 1; width: 32px; height: 32px; border: 2px solid var(--ink); background: var(--panel); font: 700 18px/1 var(--mono); cursor: pointer; }
 .loot-close:hover { background: var(--ear); }
+.loot-close { color: var(--ink); }
+/* 図鑑は持ち物欄と同じ灰色の窓なので、閉じるボタンも灰色にそろえる */
+.dex-win .loot-close { background: #8b8b8b; border-color: #373737; color: #fff; }
+.dex-win .loot-close:hover { background: #a7a7a7; }
 .loot-card p.loot-note { margin-top: 8px; }
 .loot-spec { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 8px 0 0; font-size: 13px; }
 .loot-spec dt { color: var(--ink-2); }
@@ -392,6 +396,7 @@ body { transition: background-color .4s; }
 .dex-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 4px; }
 .dex-slot { width: 100%; aspect-ratio: 1; padding: 3px; display: grid; place-items: center; cursor: pointer; }
 .dex-slot img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.dex-slot img.dex-icon { width: 78%; height: 78%; object-fit: contain; image-rendering: auto; }
 .dex-slot .slot-mark { height: auto; font-size: 18px; }
 .dex-slot:not(.is-found) .dex-img, .dex-slot.is-found .dex-q { display: none; }
 .dex-slot:not(.is-found) { cursor: default; font: 400 22px var(--dot); color: #5b5b5b; text-shadow: none; background: #7a7a7a; }
