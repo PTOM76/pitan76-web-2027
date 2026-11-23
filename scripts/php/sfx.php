@@ -29,7 +29,7 @@ function silence(float $sec): array {
 function mix(array &$dst, array $src, float $at = 0.0, float $gain = 1.0): void {
     $o = (int)round($at * SR);
     $n = min(count($src), count($dst) - $o);
-    for ($i = 0; $i < $n; $i++) $dst[$o + $i] += $src[$i] * $gain;
+    for ($i = max(0, -$o); $i < $n; $i++) $dst[$o + $i] += $src[$i] * $gain;
 }
 
 /**
@@ -254,9 +254,24 @@ function barNote(float $f, float $sec, float $alpha): array {
     return strike($modes, $alpha, 1.2e-9, 0.0009, $sec);
 }
 
+/**
+ * 作品が届いたときの短いフレーズ。和音を下から順に積む分散和音は定番すぎるため、
+ * 5 度跳ねて 1 音下がり、オクターブ上へ抜けて 6 度を重ねた響きで終える（E5 B5 A5 → E6 + F#6）。
+ * 手で叩いたように、間隔と強さを少し不揃いにする。
+ */
 function transfer(): array {
-    $x = silence(0.9);
-    foreach ([523.25, 659.26, 783.99, 1046.5] as $i => $f) mix($x, barNote($f, 0.6, 7), $i * 0.06, 0.8);
+    $x = silence(1.4);
+    // [開始 s, 周波数 Hz, 強さ, 余韻 s]
+    $notes = [
+        [0.000, 659.26, 0.55, 0.35],    // E5
+        [0.072, 987.77, 0.75, 0.40],    // B5
+        [0.150, 880.00, 0.50, 0.50],    // A5
+        [0.262, 1318.51, 0.85, 1.10],   // E6
+        [0.268, 1479.98, 0.35, 1.00],   // F#6（わずかに遅らせて重ねる）
+    ];
+    foreach ($notes as [$t, $f, $g, $len]) {
+        mix($x, barNote($f, $len, 3.2 / $len), $t + rnd(-0.004, 0.004), $g * rnd(0.92, 1.05));
+    }
     return finish(room($x, 0.16, 0.6), -2.0);
 }
 
