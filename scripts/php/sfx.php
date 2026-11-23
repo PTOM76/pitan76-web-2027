@@ -179,7 +179,7 @@ function writeWav(string $path, array $x): void {
 
 /** ツルハシで石を叩く。硬い物同士なので接触は短く、石は高音の減衰が速い */
 function hitStone(): array {
-    $f0 = rnd(520, 760);
+    $f0 = rnd(330, 480);
     $body = strike(solidModes($f0, 36, 2.2), 25, 2.2e-6, rnd(0.00025, 0.0004), 0.35);
     $x = silence(0.4);
     mix($x, $body, 0, 1.0);
@@ -189,21 +189,49 @@ function hitStone(): array {
 }
 
 /** 石のブロックが砕ける。ひびの衝撃、ブロック本体、大きさの違う破片の順に鳴る */
-function breakStone(): array {
-    $x = silence(1.2);
-    mix($x, residual(0.012, 400, 16000, 2000), 0, 0.7);   // ひびが走る瞬間
-    // 本体は低く、接触が長めの重い音
-    $f0 = rnd(180, 240);
-    mix($x, strike(solidModes($f0, 30, 2.6), 18, 3.5e-6, 0.0012, 0.6), 0.002, 1.1);
-    mix($x, residual(0.25, 18, 2500, 120), 0.002, 0.9);    // 崩れる土砂のような成分
+/**
+ * 砕け方の性格。候補ごとにこの中から 1 つを選び、さらに数値を揺らす。
+ *  crack: ひびの衝撃の強さ / body: 本体の基準周波数 [下, 上] / heavy: 本体の重さ（接触時間と音量）
+ *  pieces: 破片の数 [下, 上] / gap: 破片の平均間隔 s / small: 破片の大きさ [下, 上]（小さいほど高い）
+ *  dust: 崩れる砂の量 / bounce: 破片が床で跳ねる回数の上限
+ */
+const BREAK_STYLES = [
+    'normal' => ['crack' => 0.7, 'body' => [180, 240], 'heavy' => 1.0, 'pieces' => [20, 24], 'gap' => 0.014, 'small' => [0.15, 1.0], 'frag' => [480, 720], 'dust' => 0.9, 'bounce' => 0],
+    'low'    => ['crack' => 0.35, 'body' => [80, 110], 'heavy' => 1.4, 'pieces' => [9, 13], 'gap' => 0.018, 'small' => [0.6, 1.0], 'frag' => [280, 420], 'dust' => 1.0, 'bounce' => 1],
+    'lower'  => ['crack' => 0.25, 'body' => [55, 75], 'heavy' => 1.6, 'pieces' => [7, 10], 'gap' => 0.022, 'small' => [0.7, 1.0], 'frag' => [200, 300], 'dust' => 1.1, 'bounce' => 1],
+];
+
+/** 石のブロックが砕ける。ひびの衝撃、ブロック本体、大きさの違う破片の順に鳴る */
+function breakStone(string $style): array {
+    $s = BREAK_STYLES[$style];
+    $x = silence(1.6);
+    // ひびが走る瞬間。1〜3 回に分けて走ることがある
+    $cracks = mt_rand(1, 3);
+    for ($c = 0; $c < $cracks; $c++) {
+        mix($x, residual(0.012, rnd(300, 500), 16000, rnd(1500, 3000)), $c * rnd(0.004, 0.012), $s['crack'] * 0.7 / ($c + 1));
+    }
+    // 本体: 重いほど接触が長く、低い音が中心になる
+    $f0 = rnd(...$s['body']);
+    mix($x, strike(solidModes($f0, 30, rnd(2.2, 3.0)), 18, 3.5e-6, 0.0008 * $s['heavy'], 0.6), 0.002, 0.8 * $s['heavy']);
+    mix($x, residual(rnd(0.2, 0.35), rnd(12, 22), rnd(2000, 3500), 120), 0.002, 0.7 * $s['dust']);
     // 破片: 小さいほど固有振動が高い（周波数は大きさに反比例）。間隔は指数分布で、だんだん間遠くなる
     $t = 0.01;
-    for ($i = 0; $i < 22; $i++) {
-        $t += -log(1 - rnd(0, 0.999)) * 0.014 * (1 + $i * 0.12);
-        $size = rnd(0.15, 1.0);
-        $fr = strike(solidModes(rnd(500, 700) / $size, 14, 2.0), 40, 3e-6, 0.0003 * $size, 0.15);
-        mix($x, $fr, $t, 0.28 * (1 - $i / 26) * $size ** 0.5);
-        if (mt_rand(0, 2) === 0) mix($x, residual(0.03, 120, 9000, 1500), $t, 0.15);
+    $count = mt_rand(...$s['pieces']);
+    for ($i = 0; $i < $count; $i++) {
+        $t += -log(1 - rnd(0, 0.999)) * $s['gap'] * (1 + $i * 0.1);
+        $size = rnd(...$s['small']);
+        $modes = solidModes(rnd(...$s['frag']) / $size, 14, 2.0);   // 同じ破片が跳ねても同じ音色になるよう固定する
+        $amp = 0.28 * (1 - $i / ($count + 4)) * $size ** 0.5;
+        $contact = 0.0003 * $size;
+        mix($x, strike($modes, 40, 3e-6, $contact, 0.15), $t, $amp);
+        if (mt_rand(0, 2) === 0) mix($x, residual(0.03, 120, 9000, 1500), $t, 0.15 * $s['dust']);
+        // 床で跳ねる: 跳ね返り係数 0.4〜0.6 で、間隔と強さが縮まっていく
+        $bt = $t; $gapB = rnd(0.05, 0.1) * $size; $ab = $amp;
+        for ($b = 0; $b < mt_rand(0, $s['bounce']); $b++) {
+            $e = rnd(0.4, 0.6);
+            $bt += $gapB; $gapB *= $e; $ab *= $e;
+            mix($x, strike($modes, 40, 3e-6, $contact, 0.12), $bt, $ab);
+        }
     }
     return finish(room($x, 0.14, 0.45));
 }
@@ -274,20 +302,23 @@ function generate(string $out): void {
     mt_srand(76);
     $sounds = [
         'hit' => [4, 'hitStone'],
-        'break' => [3, 'breakStone'],
+        // 普通の音を 2 つ、低い音を 1 つ、さらに低い音を 2 つ作る
+        'break' => [5, fn(int $v) => breakStone(['normal', 'normal', 'low', 'lower', 'lower'][$v - 1])],
         'blip' => [1, 'blip'],
         'transfer' => [1, 'transfer'],
         'achieve' => [1, 'achieve'],
         'boing' => [1, 'boing'],
     ];
     if (!is_dir($out)) mkdir($out, 0777, true);
+    // 候補の数を減らしたときに古いファイルが残らないよう、先に消す
+    foreach (glob("$out/*.{ogg,m4a,json}", GLOB_BRACE) as $f) unlink($f);
     $tmp = sys_get_temp_dir();
     $manifest = [];
     foreach ($sounds as $name => [$count, $fn]) {
         for ($v = 1; $v <= $count; $v++) {
             $base = $count > 1 ? "$name-$v" : $name;
             $wav = "$tmp/sfx-" . getmypid() . "-$base.wav";   // ビルドが同時に走っても衝突しないよう PID を付ける
-            writeWav($wav, (__NAMESPACE__ . '\\' . $fn)());
+            writeWav($wav, is_string($fn) ? (__NAMESPACE__ . '\\' . $fn)() : $fn($v));
             foreach (['ogg' => '-c:a libopus -b:a 64k', 'm4a' => '-c:a aac -b:a 96k'] as $ext => $codec) {
                 exec(sprintf('ffmpeg -y -loglevel error -i %s %s %s', escapeshellarg($wav), $codec, escapeshellarg($out . "/$base.$ext")), $o, $code);
                 if ($code !== 0) throw new \RuntimeException("ffmpeg に失敗しました: $base.$ext");
