@@ -19,6 +19,12 @@ jobs:
         with:
           php-version: '8.5'
           extensions: gd
+      # 作品画像のサムネイルやフォントを次のビルドに引き継ぎ、毎回取得し直さないようにする
+      - uses: actions/cache@v4
+        with:
+          path: .cache
+          key: build-cache-${{ github.run_id }}
+          restore-keys: build-cache-
       - name: Check PHP syntax
         run: for f in build.php src/*.php templates/*.php templates/partials/*.php; do php -l "$f"; done
       - id: pages

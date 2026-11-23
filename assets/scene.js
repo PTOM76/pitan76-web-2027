@@ -516,6 +516,18 @@ function tick() {
     b.mesh.position.copy(home);
     b.mesh.position.x += b.moveX;
     b.mesh.position.y += b.moveY;
+    // 投げたブロックが画面の外へ消えないよう、左右の端で跳ね返す。
+    // 元から端にはみ出して置かれているブロックは押し戻さない（動かした分だけを戻す）
+    if (grabbed !== b && b.moveX) {
+      const limit = Math.max(viewHeightAt(home.z) * camera.aspect / 2 - scale * 0.5, Math.abs(home.x));
+      const x = b.mesh.position.x;
+      if (Math.abs(x) > limit && Math.sign(b.moveX) === Math.sign(x)) {
+        const over = x - Math.sign(x) * limit;
+        b.moveX -= over;
+        b.mesh.position.x -= over;
+        if (Math.sign(b.velX) === Math.sign(x)) b.velX *= -0.5;
+      }
+    }
 
     const sp = bug ? 10 : 1;
     const idleX = b.rot.x + bt * b.spin * sp;
