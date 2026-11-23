@@ -46,11 +46,10 @@ $icons = skill_icons($site['skills'], $config, "$cache/icons");
 $items = build_items($works, $thumbs, $notes, $config, array_column($projects, 'work'));
 $byId = array_column($items, null, 'id');
 
-foreach ($projects as &$p) {
+$projects = array_map(static function (array $p) use ($byId): array {
     if (!isset($byId[$p['work']])) warn("projects.json: work \"{$p['work']}\" が works-info にありません");
-    $p['thumb'] = $byId[$p['work']]['thumb'] ?? null;
-}
-unset($p);
+    return $p + ['thumb' => $byId[$p['work']]['thumb'] ?? null];
+}, $projects);
 foreach (array_keys($notes) as $id) {
     if (!isset($byId[$id])) warn("notes.json: \"$id\" が works-info にありません");
 }
@@ -67,7 +66,7 @@ foreach ($config['images'] + array_fill_keys(array_keys($characters), 480) as $n
     $src = ROOT . "/assets/img/$name.png";
     $cached = "$cache/img/$name-$width.png";
     if (is_stale($cached, $src)) {
-        @mkdir(dirname($cached), 0777, true);
+        ensure_dir(dirname($cached));
         resize_png($src, $cached, $width);
     }
     copy_file($cached, "$out/assets/img/$name.png");
@@ -76,7 +75,7 @@ foreach ($config['favicons'] as $name => $size) {
     $src = ROOT . '/assets/img/favicon-src.png';
     $cached = "$cache/img/$name.png";
     if (is_stale($cached, $src, ROOT . '/src/image.php')) {
-        @mkdir(dirname($cached), 0777, true);
+        ensure_dir(dirname($cached));
         round_pixel_icon($src, $cached, $size);
     }
     copy_file($cached, "$out/assets/img/$name.png");
@@ -126,7 +125,8 @@ $pages['404.html'] = render('404', View::$shared);
 foreach ($pages as $path => $html) write_file("$out/$path", $html);
 write_file("$out/.nojekyll", '');
 if ($url !== '') {
-    $locs = array_map(static fn($path) => "  <url><loc>" . h("$url/" . ($path === 'index.html' ? '' : $path)) . "</loc></url>", array_filter(array_keys($pages), static fn($path) => $path !== '404.html' && !str_ends_with($path, '.card.html')));
+    $public = array_filter(array_keys($pages), static fn($path) => $path !== '404.html' && !str_ends_with($path, '.card.html'));
+    $locs = array_map(static fn($path) => '  <url><loc>' . h("$url/" . ($path === 'index.html' ? '' : $path)) . '</loc></url>', $public);
     write_file("$out/sitemap.xml", "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n" . implode("\n", $locs) . "\n</urlset>\n");
     write_file("$out/robots.txt", "User-agent: *\nAllow: /\nSitemap: $url/sitemap.xml\n");
 }
