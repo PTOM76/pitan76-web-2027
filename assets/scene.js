@@ -129,7 +129,11 @@ const mysteryTex = stoneTexture(['#ff7cc8', '#5fb4ff', '#7be08f', '#ffad0a', '#c
 
 // 飾りブロックは灰色の石。作品入りで画像がないものはカテゴリ色の鉱石にする
 const stoneTex = stoneTexture(null);
-const ORE = { 'Minecraft Mod': '#ffad0a', 'MC Plugin': '#ffad0a', PukiWiki: '#5fb4ff', Web: '#ff7cc8', Extension: '#ff7cc8', App: '#7be08f' };
+// キーは data/config.json の categories の表示名
+const ORE = {
+  Minecraft: '#ffad0a', 'R.E.P.O Mod': '#ffad0a', PukiWiki: '#5fb4ff', Web: '#ff7cc8', Extension: '#ff7cc8',
+  App: '#7be08f', 'MMD Plugin': '#c58cff', Misc: '#ffffff',
+};
 const oreTex = new Map();
 const oreColor = (cat) => ORE[cat] || '#ffffff';
 const oreTexture = (cat) => {
@@ -773,6 +777,10 @@ tick();
 // 自動テスト（tests/e2e/）用の入口。画面上の (x, y) がブロックの操作を止める UI や文字の上かを返す
 window.__scene = {
   overUI: (x, y) => overUI({ target: document.elementFromPoint(x, y) ?? document.body, clientX: x, clientY: y }),
+  // ブロックのテクスチャ（data URL）。README の画像を作るのに使う（scripts/block-images.mjs）
+  textures: () => Object.fromEntries(Object.entries({
+    ore: oreTexture('Minecraft'), mystery: mysteryTex, tnt: tntTex, note: noteTex, lucky: luckyTex, stone: stoneTex,
+  }).map(([k, t]) => [k, t.image.toDataURL()])),
   // ブロックの種類ごとの数
   kinds: () => blocks.reduce((o, b) => ({ ...o, [b.kind]: (o[b.kind] ?? 0) + 1 }), {}),
   // 画像もアイコンもない作品の ID（「何かの作品入り」の中身の候補）

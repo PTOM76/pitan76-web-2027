@@ -7,7 +7,8 @@
         "build": "php build.php",
         "check": "node scripts/check.mjs",
         "test": "php tests/php/run.php && playwright test",
-        "test:e2e": "playwright test"
+        "test:e2e": "playwright test",
+        "block-images": "node scripts/block-images.mjs"
     },
     "engines": {
         "node": ">=20.11"
