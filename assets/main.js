@@ -93,7 +93,7 @@
   /* ---------- ぴたん ---------- */
   const pitan = $('#pitan');
   const pitanSay = $('#pitan-say');
-  const lines = ['にゃ？', 'なでなで…', 'バグじゃないです、仕様です', 'ブロック壊してみて', 'ビルド中…', 'MOD作ってます', 'あっ、そこは触らないで'];
+  const lines = ['にゃ？', 'これは…バグですえ', 'バグじゃない、仕様ですえ', 'ブロック壊してみてな〜', 'ビルド中…', 'MOD作ってまし'];
   let pets = 0;
   function say(el, text, ms = 2200) {
     el.textContent = text;
@@ -129,7 +129,7 @@
     pitan.style.setProperty('--tilt', '0deg');
     if (dragged) {
       sound.boing();
-      say(pitanSay, '剥がさないで〜');
+      say(pitanSay, '剥がさんといて〜');
       achieve('peel', 'ステッカーを剥がそうとした', '✋');
     }
   };
@@ -142,8 +142,8 @@
     pitan.classList.remove('boing');
     void pitan.offsetWidth;
     pitan.classList.add('boing');
-    say(pitanSay, pets >= 10 ? 'もう十分なでたでしょ！' : lines[(Math.random() * lines.length) | 0]);
-    if (pets === 10) achieve('pet', 'ぴたんを10回なでた', '♥');
+    say(pitanSay, pets >= 10 ? 'もう十分なでたやろが！' : lines[(Math.random() * lines.length) | 0]);
+    if (pets === 10) achieve('pet', '代理くんを10回なでた', '♥');
   });
 
   /* ---------- 作品索引 ---------- */
