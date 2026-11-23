@@ -5,9 +5,10 @@
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const SITE = window.SITE;
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const icon = (name) => `<i class="fa-solid fa-${name}" aria-hidden="true"></i>`;
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  /* ---------- 効果音（Web Audio で合成） ---------- */
+  /* ---------- 効果音 ---------- */
   const sound = (() => {
     // 音は scripts/php/sfx.php で合成した assets/sfx/ のファイルを鳴らす。
     // 同じ名前に複数の候補があるときは毎回ランダムに選び、同じ音の繰り返しを避ける
@@ -65,25 +66,25 @@
     };
   })();
   const soundBtn = $('#sound');
-  const paintSound = () => { soundBtn.textContent = sound.on ? '♪ ON' : '♪ OFF'; soundBtn.setAttribute('aria-pressed', String(sound.on)); };
+  const paintSound = () => { soundBtn.innerHTML = sound.on ? `${icon('volume-high')} ON` : `${icon('volume-xmark')} OFF`; soundBtn.setAttribute('aria-pressed', String(sound.on)); };
   paintSound();
   soundBtn.addEventListener('click', () => { sound.toggle(); paintSound(); sound.blip(); });
   addEventListener('block-hit', () => sound.hit());
 
   /* ---------- 実績 ---------- */
   const unlocked = new Set();
-  function toast(label, title, icon) {
+  function toast(label, title, name) {
     const el = document.createElement('div');
     el.className = 'toast';
-    el.innerHTML = `<i>${icon}</i><div><b>${esc(label)}</b>${esc(title)}</div>`;
+    el.innerHTML = `<span class="toast-icon">${icon(name)}</span><div><b>${esc(label)}</b>${esc(title)}</div>`;
     $('#toasts').append(el);
     setTimeout(() => el.remove(), 4400);
   }
-  function achieve(id, title, icon = '★') {
+  function achieve(id, title, name = 'star') {
     if (unlocked.has(id)) return;
     unlocked.add(id);
     sound.achieve();
-    toast('実績解除', title, icon);
+    toast('実績解除', title, name);
   }
 
   /* ---------- 座標表示（背景の方眼 32px を 1 ブロックとして、ページ上端からの深さ） ---------- */
@@ -134,7 +135,7 @@
     if (dragged) {
       sound.boing();
       say(pitanSay, '剥がさんといて〜');
-      achieve('peel', 'ステッカーを剥がそうとした', '✋');
+      achieve('peel', 'ステッカーを剥がそうとした', 'hand');
     }
   };
   pitan.addEventListener('pointerup', drop);
@@ -147,7 +148,7 @@
     void pitan.offsetWidth;
     pitan.classList.add('boing');
     say(pitanSay, pets >= 10 ? 'もう十分なでたやろが！' : lines[(Math.random() * lines.length) | 0]);
-    if (pets === 10) achieve('pet', '代理くんを10回なでた', '♥');
+    if (pets === 10) achieve('pet', '代理くんを10回なでた', 'heart');
   });
 
   /* ---------- 作品索引 ---------- */
@@ -172,7 +173,7 @@
       }
       const wasHidden = empty.hidden;
       empty.hidden = shown > 0;
-      if (wasHidden && !empty.hidden) achieve('404', 'HTTPちゃんに 404 を返された', '?');
+      if (wasHidden && !empty.hidden) achieve('404', 'HTTPちゃんに 404 を返された', 'circle-question');
     };
     q.addEventListener('input', filter);
     more?.addEventListener('click', () => { expanded = true; filter(); });
@@ -211,7 +212,7 @@
   const slots = $$('.slot');
   slots.forEach((s) => s.addEventListener('pointerenter', () => {
     seen.add(s);
-    if (seen.size === slots.length) achieve('inv', '持ち物を全部確認した', '▣');
+    if (seen.size === slots.length) achieve('inv', '持ち物を全部確認した', 'box-open');
   }));
 
 
@@ -272,7 +273,7 @@
     $('#chara-desc').textContent = current.desc;
     chara.hidden = false;
     sound.blip();
-    achieve('chara-' + current.key, current.name + 'に会った', '✉');
+    achieve('chara-' + current.key, current.name + 'に会った', 'envelope');
   });
   $('#chara-close').addEventListener('click', () => { chara.hidden = true; });
   chara.addEventListener('click', (e) => { if (e.target === chara) chara.hidden = true; });
@@ -337,7 +338,7 @@
   function openDex() {
     renderDex();
     dex.hidden = false;
-    achieve('dex', '図鑑を開いた', '▤');
+    achieve('dex', '図鑑を開いた', 'book');
   }
   $('#dex-open').addEventListener('click', openDex);
   $('#dex-close').addEventListener('click', () => { dex.hidden = true; });
@@ -347,11 +348,11 @@
     if (found.has(w.id)) return;
     found.add(w.id);
     try { localStorage.setItem('dex', JSON.stringify([...found])); } catch { /* noop */ }
-    toast('図鑑に登録', w.name, '▤');
+    toast('図鑑に登録', w.name, 'book');
     if (!dex.hidden) renderDex();
-    if (found.size === 10) achieve('found10', '作品を10個発掘した', '◎');
-    if (found.size === 50) achieve('found50', '作品を50個発掘した', '◆');
-    if (SITE.works.every((x) => found.has(x.id))) achieve('foundAll', '図鑑をすべて埋めた', '★');
+    if (found.size === 10) achieve('found10', '作品を10個発掘した', 'bullseye');
+    if (found.size === 50) achieve('found50', '作品を50個発掘した', 'gem');
+    if (SITE.works.every((x) => found.has(x.id))) achieve('foundAll', '図鑑をすべて埋めた', 'star');
   }
 
   addEventListener('block-break', (e) => {
@@ -361,13 +362,17 @@
       register(work);
       deliver(work);
     }
-    if (count === 1) achieve('mine1', 'はじめてのブロック破壊', '⛏');
-    if (count === 20) achieve('mine20', 'ブロックを20個壊した', '◆');
+    if (count === 1) achieve('mine1', 'はじめてのブロック破壊', 'person-digging');
+    if (count === 20) achieve('mine20', 'ブロックを20個壊した', 'gem');
   });
 
   /* ---------- 昼と夜（自動 / 昼 / 夜） ---------- */
   const themeBtn = $('#theme');
-  const THEME_LABEL = { auto: '◐', light: '☀', dark: '☾' };
+  const THEME = {
+    auto: { icon: 'circle-half-stroke', name: '自動' },
+    light: { icon: 'sun', name: '昼' },
+    dark: { icon: 'moon', name: '夜' },
+  };
   let themeMode = document.documentElement.dataset.themeMode || 'auto';
   function applyTheme() {
     const h = new Date().getHours();
@@ -375,8 +380,8 @@
     const root = document.documentElement;
     const changed = root.dataset.theme !== (dark ? 'dark' : 'light');
     root.dataset.theme = dark ? 'dark' : 'light';
-    themeBtn.textContent = THEME_LABEL[themeMode];
-    themeBtn.title = `昼と夜の切り替え（今: ${THEME_LABEL[themeMode].slice(2)}）`;
+    themeBtn.innerHTML = icon(THEME[themeMode].icon);
+    themeBtn.title = `昼と夜の切り替え（今: ${THEME[themeMode].name}）`;
     $('meta[name="theme-color"]').content = dark ? '#121829' : '#dcecfa';
     if (changed) dispatchEvent(new CustomEvent('themechange', { detail: { dark } }));
   }
@@ -385,7 +390,7 @@
     try { localStorage.setItem('theme', themeMode); } catch { /* noop */ }
     sound.blip();
     applyTheme();
-    if (themeMode === 'dark') achieve('night', '夜にした', '☾');
+    if (themeMode === 'dark') achieve('night', '夜にした', 'moon');
   });
   setInterval(applyTheme, 60000);   // 自動のとき、時刻が変われば切り替える
   applyTheme();
@@ -397,7 +402,7 @@
     if (!d) { tip.classList.remove('show'); return; }
     tip.classList.toggle('has-work', !!d.work);
     tip.innerHTML = d.work
-      ? `<b>◆ 作品入り</b><span>${esc(d.work.cat)} · 長押しで採掘</span>`
+      ? `<b>${icon('gem')} 作品入り</b><span>${esc(d.work.cat)} · 長押しで採掘</span>`
       : '<b>ただのブロック</b><span>長押しで採掘</span>';
     tip.classList.add('show');
   });
@@ -414,7 +419,7 @@
     document.body.classList.toggle('bug', on);
     dispatchEvent(new CustomEvent('bugmode', { detail: on }));
     if (on) {
-      achieve('bug', 'バグモードを発見した', '!');
+      achieve('bug', 'バグモードを発見した', 'bug');
       for (let i = 0; i < 24; i++) {
         const el = document.createElement('img');
         el.className = 'rain';
@@ -484,10 +489,10 @@
       if (/^rm\s+-(rf|fr)\s+\/\*?$/.test(a)) {
         term.hidden = true;
         collapse();
-        achieve('rmrf', 'sudo rm -rf / を実行した', '☠');
+        achieve('rmrf', 'sudo rm -rf / を実行した', 'skull');
         return '<span class="err">removing / …</span>';
       }
-      achieve('sudo', 'sudo を試みた', '#');
+      achieve('sudo', 'sudo を試みた', 'hashtag');
       return '<span class="err">visitor is not in the sudoers file. This incident will be reported.</span>';
     },
     smtp: (a) => {
@@ -523,7 +528,9 @@
   };
   // 作品を ID か名前の一部で探す
   function findWork(s) {
-    const k = decodeURIComponent(s).trim().toLowerCase();
+    let k = s;
+    try { k = decodeURIComponent(s); } catch { /* % を含む入力はそのまま使う */ }
+    k = k.trim().toLowerCase();
     return SITE.works.find((w) => w.id.toLowerCase() === k)
       || SITE.works.find((w) => w.name.toLowerCase() === k)
       || SITE.works.find((w) => w.name.toLowerCase().includes(k) || w.id.toLowerCase().includes(k));
@@ -547,7 +554,7 @@
       document.body.classList.remove('collapsed');
       parts.forEach((el) => ['--fall-r', '--fall-x', '--fall-d'].forEach((p) => el.style.removeProperty(p)));
       collapsing = false;
-      toast('復旧', 'バックアップから復元しました', '↺');
+      toast('復旧', 'バックアップから復元しました', 'rotate-left');
     }, 4200);
   }
 
@@ -555,7 +562,7 @@
     term.hidden = false;
     if (!out.childElementCount) print('pitan shell — "help" でコマンド一覧');
     input.focus();
-    achieve('term', 'ターミナルを開いた', '>');
+    achieve('term', 'ターミナルを開いた', 'terminal');
   }
   $$('[data-open-terminal]').forEach((b) => b.addEventListener('click', openTerm));
   $$('[data-close-terminal]').forEach((b) => b.addEventListener('click', () => { term.hidden = true; }));
@@ -590,7 +597,7 @@
   const debug = $('#debug');
   const updateDebug = () => {
     debug.hidden = location.hash !== '#debug';
-    if (!debug.hidden) achieve('debug', 'デバッグ表示を見つけた', '%');
+    if (!debug.hidden) achieve('debug', 'デバッグ表示を見つけた', 'magnifying-glass');
   };
   addEventListener('hashchange', updateDebug);
   updateDebug();

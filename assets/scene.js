@@ -7,6 +7,9 @@ import * as THREE from 'three';
 const canvas = document.getElementById('scene');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const works = window.SITE?.works ?? [];
+// 通信量を節約する設定や低速な回線では、作品画像を読み込まず鉱石の見た目のままにする
+const lowData = navigator.connection?.saveData || /(^|-)2g$/.test(navigator.connection?.effectiveType ?? '');
+const narrow = innerWidth < 700;
 
 let renderer;
 try {
@@ -15,7 +18,8 @@ try {
   canvas.remove();
   throw new Error('WebGL is not available');
 }
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+let pixelRatio = Math.min(devicePixelRatio, narrow ? 1.5 : 2);
+renderer.setPixelRatio(pixelRatio);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.classList.add('gl');
 
@@ -81,29 +85,22 @@ const edgeMat = new THREE.LineBasicMaterial({ color: INK });
 const blocks = [];
 const featured = [];
 
-function makeBlock(work, i) {
-  let mat;
-  if (work?.thumb) {
-    // 画像が複数あれば 6 面に順番に貼る。1 枚なら全面同じ
-    const n = Math.max(1, work.faces || 1);
-    const mats = Array.from({ length: n }, (_, k) => {
-      const m = new THREE.MeshLambertMaterial({ color: 0xffffff });
-      loader.load(work.thumb + (k ? `-${k + 1}` : '') + '.jpg', (t) => {
-        t.colorSpace = THREE.SRGBColorSpace;
-        t.anisotropy = 4;
-        m.map = t;
-        m.needsUpdate = true;
-      });
-      return m;
-    });
-    mat = n === 1 ? mats[0] : Array.from({ length: 6 }, (_, f) => mats[f % n]);
-  } else if (work) {
-    mat = new THREE.MeshLambertMaterial({ map: oreTexture(work.cat) });
-  } else {
-    mat = new THREE.MeshLambertMaterial({ map: stoneTex });
-  }
-  void i;
-  const mesh = new THREE.Mesh(geo, mat);
+// 作品画像を面に貼る。画像が複数あれば 6 面に順番に貼り、1 枚なら全面同じにする
+function loadFaces(work, mats) {
+  mats.forEach((m, k) => loader.load(work.thumb + (k ? `-${k + 1}` : '') + '.jpg', (t) => {
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    m.map = t;
+    m.needsUpdate = true;
+  }));
+}
+
+function makeBlock(work) {
+  // 作品入りのブロックは、画像を読み込むまで鉱石の見た目にする
+  const faces = work?.thumb ? Math.max(1, work.faces || 1) : 1;
+  const map = work ? oreTexture(work.cat) : stoneTex;
+  const mats = Array.from({ length: faces }, () => new THREE.MeshLambertMaterial({ map }));
+  const mesh = new THREE.Mesh(geo, faces === 1 ? mats[0] : Array.from({ length: 6 }, (_, f) => mats[f % faces]));
   mesh.add(new THREE.LineSegments(edges, edgeMat));
   scene.add(mesh);
   const b = {
@@ -120,21 +117,23 @@ function makeBlock(work, i) {
     alive: 1,
     respawn: 0,
     hover: 0,
+    // 画面に入ったときに一度だけ画像を読み込む
+    loadFaces: work?.thumb && !lowData ? () => loadFaces(work, mats) : null,
   };
   mesh.userData.block = b;
   blocks.push(b);
   return b;
 }
 
-works.forEach((w, i) => {
-  const b = makeBlock(w, i);
+works.forEach((w) => {
+  const b = makeBlock(w);
   if (w.featured !== null && w.featured !== undefined) {
     b.slot = document.querySelector(`[data-slot="${w.featured}"]`);
     if (b.slot) featured.push(b);
   }
 });
-const FILLER = innerWidth < 700 ? 20 : 50;
-for (let i = 0; i < FILLER; i++) makeBlock(null, i);
+const FILLER = narrow ? 20 : 50;
+for (let i = 0; i < FILLER; i++) makeBlock(null);
 
 // 中央の本文を避けて左右に寄せる
 for (const b of blocks) {
@@ -241,9 +240,12 @@ addEventListener('pointerdown', (e) => {
   lastPt.x = e.clientX; lastPt.y = e.clientY;
   rotateOnly = e.shiftKey;
   pointerHeld = true;
+  // 長押ししている間に文字が選択されたり、スマホのメニューが開いたりしないようにする
+  document.body.classList.add('holding');
 });
 const release = (e) => {
   pointerHeld = false;
+  document.body.classList.remove('holding');
   grabbed = null;
   stopMining();
   if (e?.pointerType && e.pointerType !== 'mouse') ndc.set(9, 9);
@@ -251,6 +253,43 @@ const release = (e) => {
 addEventListener('pointerup', release);
 addEventListener('pointercancel', release);
 addEventListener('blur', (e) => { rotateOnly = false; release(e); });
+addEventListener('contextmenu', (e) => { if (pointerHeld && (grabbed || hovered)) e.preventDefault(); });
+
+// 初回の案内。まだ 1 つも掘ったことがなければ、少し待ってから画面内のブロックを 1 つ揺らし、吹き出しを付ける
+const nudgeEl = document.getElementById('nudge');
+const MINED_KEY = 'mined';
+let mined = false;
+try { mined = localStorage.getItem(MINED_KEY) === '1'; } catch { /* noop */ }
+let nudgeReady = false;
+let nudge = null;
+if (!mined && nudgeEl) setTimeout(() => { nudgeReady = true; }, 2500);
+const projected = new THREE.Vector3();
+function toScreen(b) {
+  b.mesh.getWorldPosition(projected).project(camera);
+  return { x: (projected.x + 1) / 2 * innerWidth, y: (1 - projected.y) / 2 * innerHeight };
+}
+const nudgeable = (b, p) => b.alive === 1 && !b.slot && !b.summonEl
+  && p.x > innerWidth * 0.08 && p.x < innerWidth * 0.92 && p.y > innerHeight * 0.25 && p.y < innerHeight * 0.85;
+function updateNudge() {
+  if (!nudgeReady || mined) return;
+  let p = nudge && toScreen(nudge);
+  if (!nudge || !nudgeable(nudge, p)) {
+    // 手前にある（大きく見える）ブロックを選ぶ
+    nudge = null;
+    for (const b of blocks) {
+      const q = toScreen(b);
+      if (nudgeable(b, q) && (!nudge || b.z > nudge.z)) { nudge = b; p = q; }
+    }
+  }
+  nudgeEl.hidden = !nudge;
+  if (nudge) nudgeEl.style.transform = `translate(${Math.round(p.x)}px, ${Math.round(p.y)}px)`;
+}
+function endNudge() {
+  mined = true;
+  nudge = null;
+  if (nudgeEl) nudgeEl.hidden = true;
+  try { localStorage.setItem(MINED_KEY, '1'); } catch { /* noop */ }
+}
 
 function stopMining() {
   if (!mining) return;
@@ -265,6 +304,7 @@ function breakBlock(b) {
   const c = new THREE.Color(b.work ? oreColor(b.work.cat) : '#9a968c');
   burst(b.mesh.getWorldPosition(new THREE.Vector3()), c);
   broken++;
+  endNudge();
   dispatchEvent(new CustomEvent('block-break', { detail: { count: broken, work: b.work } }));
 }
 function updateMining(dt) {
@@ -321,7 +361,10 @@ const home = new THREE.Vector3();
 const slotPos = new THREE.Vector3();
 const clock = new THREE.Clock();
 const smooth = (t) => t * t * (3 - 2 * t);
+// 2.4 秒ごとに 0.5 秒だけ小刻みに揺れる
+const wobble = (t) => (t % 2.4 < 0.5 ? Math.sin(t * 40) * 0.12 : 0);
 let frames = 0;
+let slow = 0;
 let fpsTime = 0;
 
 function tick() {
@@ -340,7 +383,8 @@ function tick() {
   if (grabbed && grabbed.alive !== 1) grabbed = null;
   if (grabbed) hovered = grabbed;
   if (hovered !== prevHover) dispatchEvent(new CustomEvent('block-hover', { detail: hovered ? { work: hovered.work } : null }));
-  document.body.style.cursor = grabbed ? 'grabbing' : hovered ? 'crosshair' : '';
+  document.body.classList.toggle('on-block', !!hovered && !grabbed);
+  document.body.classList.toggle('grabbing', !!grabbed);
   if (grabbed) getSelection()?.removeAllRanges();   // 掴んで動かしたときに文字が選択されないようにする
   updateMining(dt);
 
@@ -358,6 +402,10 @@ function tick() {
     const hz = viewHeightAt(b.z);
     home.set(b.px * hz * camera.aspect * 0.5, -(sy / vh() - 0.5) * hz, b.z);
     home.y += Math.sin(bt * 0.7 + b.phase) * 0.25;
+    if (b.loadFaces && sy > -innerHeight * 0.5 && sy < innerHeight * 1.5) {
+      b.loadFaces();
+      b.loadFaces = null;
+    }
 
     const base = b.size * Math.min(1, camera.aspect * 0.9);   // 縦長画面では小さくする
     let scale = base;
@@ -401,7 +449,7 @@ function tick() {
     b.mesh.rotation.set(
       THREE.MathUtils.lerp(idleX, showX, k) + (b.dragX ?? 0),
       THREE.MathUtils.lerp(idleY, showY, k) + (b.dragY ?? 0),
-      THREE.MathUtils.lerp(0, 0.08, k),
+      THREE.MathUtils.lerp(0, 0.08, k) + (b === nudge && !reduced ? wobble(clock.elapsedTime) : 0),
     );
 
     b.hover += ((hovered === b ? 1 : 0) - b.hover) * 0.2;
@@ -431,11 +479,19 @@ function tick() {
     }
   }
 
+  updateNudge();
   renderer.render(scene, camera);
 
   frames++;
   fpsTime += dt;
   if (fpsTime >= 0.5) {
+    // 描画が追いつかない端末では、一度だけ解像度を等倍まで下げる
+    slow = frames / fpsTime < 35 ? slow + 1 : 0;
+    if (slow >= 4 && pixelRatio > 1) {
+      pixelRatio = 1;
+      renderer.setPixelRatio(1);
+      resize();
+    }
     window.__sceneStats = { fps: Math.round(frames / fpsTime), blocks: blocks.length, broken, shards: shards.length, calls: renderer.info.render.calls };
     frames = 0;
     fpsTime = 0;

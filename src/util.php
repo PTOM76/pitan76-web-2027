@@ -13,6 +13,11 @@ function h(mixed $v): string {
     return htmlspecialchars((string)$v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+/** Font Awesome のアイコン。$name は fa- を除いた名前（xmark など）。 */
+function icon(string $name): string {
+    return '<i class="fa-solid fa-' . h($name) . '" aria-hidden="true"></i>';
+}
+
 /** スクリプト内に埋め込む JSON。</script> などで閉じられないようにする。 */
 function js_json(mixed $v): string {
     return json_encode($v, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_THROW_ON_ERROR);

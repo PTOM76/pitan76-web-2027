@@ -15,8 +15,8 @@ $nav = ['works' => '代表作', 'index' => '作品一覧', 'inventory' => '技�
   </nav>
   <?php if ($full): ?>
   <button class="bar-dex" type="button" id="dex-open" title="作品図鑑">図鑑</button>
-  <button class="bar-theme" type="button" id="theme" title="昼と夜の切り替え"></button>
-  <button class="bar-sound" type="button" id="sound" aria-pressed="true" title="効果音">♪ ON</button>
-  <button class="bar-term" type="button" data-open-terminal title="ターミナル（` キー）">&gt;_</button>
+  <button class="bar-theme" type="button" id="theme" title="昼と夜の切り替え" aria-label="昼と夜の切り替え"></button>
+  <button class="bar-sound" type="button" id="sound" aria-pressed="true" title="効果音"><?= icon('volume-high') ?> ON</button>
+  <button class="bar-term" type="button" data-open-terminal title="ターミナル（` キー）" aria-label="ターミナル"><?= icon('terminal') ?></button>
   <?php endif; ?>
 </header>

@@ -8,7 +8,7 @@
 
 <div class="chara" id="chara" hidden>
   <div class="chara-card sk" role="dialog" aria-labelledby="chara-name">
-    <button type="button" class="loot-close" id="chara-close" aria-label="閉じる">×</button>
+    <button type="button" class="loot-close" id="chara-close" aria-label="閉じる"><?= icon('xmark') ?></button>
     <img id="chara-img" alt="" draggable="false">
     <div class="chara-text">
       <small id="chara-proto"></small>
@@ -20,7 +20,7 @@
 
 <div class="loot" id="loot" hidden>
   <div class="loot-card sk" id="loot-card" role="dialog" aria-label="掘り当てた作品">
-    <button type="button" class="loot-close" id="loot-close" aria-label="閉じる">×</button>
+    <button type="button" class="loot-close" id="loot-close" aria-label="閉じる"><?= icon('xmark') ?></button>
     <!-- 中身は main.js が works/ID.card.html（PHP で生成）を読み込んで入れる -->
     <div class="loot-body" id="loot-body"></div>
   </div>
@@ -28,7 +28,7 @@
 
 <div class="terminal" id="terminal" hidden>
   <div class="term-win" role="dialog" aria-label="ターミナル">
-    <div class="term-bar"><p>pitan@bug-creator:~</p><button type="button" data-close-terminal aria-label="閉じる">×</button></div>
+    <div class="term-bar"><p>pitan@bug-creator:~</p><button type="button" data-close-terminal aria-label="閉じる"><?= icon('xmark') ?></button></div>
     <div class="term-out" id="term-out"></div>
     <form class="term-in" id="term-form"><label for="term-input">$</label><input id="term-input" autocomplete="off" spellcheck="false"></form>
   </div>

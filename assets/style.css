@@ -293,7 +293,7 @@ kbd { font: 12px var(--mono); border: 1px solid currentColor; border-radius: 3px
 /* ---------- toasts ---------- */
 .toasts { position: fixed; top: 64px; right: 16px; z-index: 60; display: grid; gap: 10px; pointer-events: none; }
 .toast { width: 290px; padding: 8px 12px; background: var(--ink); color: var(--panel); border-radius: 4px; font-size: 13px; line-height: 1.4; display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: center; box-shadow: 3px 3px 0 var(--eye); animation: toast-in .3s steps(4), toast-out .3s 4s steps(4) forwards; }
-.toast i { font-style: normal; font: 22px var(--dot); text-align: center; color: var(--eye); }
+.toast-icon { font-size: 20px; text-align: center; color: var(--eye); }
 .toast b { display: block; font: 400 13px var(--dot); color: var(--eye); }
 @keyframes toast-in { from { transform: translateY(-140%); } }
 @keyframes toast-out { to { transform: translateY(-140%); opacity: 0; } }
