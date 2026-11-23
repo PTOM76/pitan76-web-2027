@@ -73,15 +73,15 @@
     },
     {
       "period": "中学生",
-      "items": "プログラミング・Minecraftサーバー運用"
+      "items": "プログラミング・マイクラサーバー運用"
     },
     {
       "period": "高校生",
-      "items": "マイクラMOD開発"
+      "items": "マイクラMOD・Webサービス開発"
     },
     {
       "period": "大学生",
-      "items": "Webサービス・ソフトウェア開発"
+      "items": "インターン・サークルでの開発"
     }
   ],
   "achievements": [
