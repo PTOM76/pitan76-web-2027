@@ -9,7 +9,7 @@
     <h1 class="hero-title"><span class="ht-jp">ぴたん</span><span class="ht-en">PITAN</span></h1>
     <p class="hero-lead"><?= h($site['lead']) ?></p>
     <p class="hero-facts">
-      Minecraft Modは<b class="num"><?= h($num('Minecraft Mod 開発作品')) ?></b>作以上つくり、ダウンロード数は合計<b class="num"><?= h($num('Minecraft Mod 累計ダウンロード')) ?></b>回を超えました。WikiChree.COMでは<b class="num"><?= h($num('WikiChree.COM 運営Wiki')) ?></b>のWikiが動いています。
+      Minecraft Modは<b class="num"><?= h($num('マイクラMOD 開発作品')) ?></b>作以上つくり、ダウンロード数は合計<b class="num"><?= h($num('マイクラMOD 累計ダウンロード')) ?></b>回を超えました。WikiChree.COMでは<b class="num"><?= h($num('WikiChree.COM のウィキ数')) ?></b>のWikiが動いています。
     </p>
     <?php if ($log): ?>
     <ol class="chatlog" aria-label="最近の更新">
