@@ -363,7 +363,7 @@
 
   /* ---------- 昼と夜（自動 / 昼 / 夜） ---------- */
   const themeBtn = $('#theme');
-  const THEME_LABEL = { auto: '◐ 自動', light: '☀ 昼', dark: '☾ 夜' };
+  const THEME_LABEL = { auto: '◐', light: '☀', dark: '☾' };
   let themeMode = document.documentElement.dataset.themeMode || 'auto';
   function applyTheme() {
     const h = new Date().getHours();
