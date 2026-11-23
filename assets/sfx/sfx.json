@@ -1,0 +1,25 @@
+{
+    "hit": [
+        "hit-1",
+        "hit-2",
+        "hit-3",
+        "hit-4"
+    ],
+    "break": [
+        "break-1",
+        "break-2",
+        "break-3"
+    ],
+    "blip": [
+        "blip"
+    ],
+    "transfer": [
+        "transfer"
+    ],
+    "achieve": [
+        "achieve"
+    ],
+    "boing": [
+        "boing"
+    ]
+}

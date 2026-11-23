@@ -9,13 +9,11 @@
 
   /* ---------- 効果音（Web Audio で合成） ---------- */
   const sound = (() => {
-    // 音はすべて合成する。手法の出典:
-    //  叩く・砕く: モーダル合成（減衰する正弦波の和で物体の固有振動を表す）
-    //    K. van den Doel, P. G. Kry, D. K. Pai, "FoleyAutomatic", SIGGRAPH 2001
-    //    叩くたびに周波数と減衰を少し揺らす（N. Raghuvanshi, J. Snyder, I3D 2011 の考え方）
-    //  崩れる音: 小さな衝突音を確率的に重ねる（P. Cook, PhISEM, 1997）
-    //  ベル: FM 合成（J. Chowning, 1973。非整数の周波数比で金属的な倍音を作る）
-    let ctx = null, master = null, noiseBuf = null;
+    // 音は scripts/php/sfx.php で合成した assets/sfx/ のファイルを鳴らす。
+    // 同じ名前に複数の候補があるときは毎回ランダムに選び、同じ音の繰り返しを避ける
+    const base = new URL('sfx/', document.currentScript.src);
+    const ext = new Audio().canPlayType('audio/ogg; codecs=opus') ? 'ogg' : 'm4a';
+    let ctx = null, out = null, bank = null;
     let on = true;
     try { on = localStorage.getItem('sound') !== 'off'; } catch { /* noop */ }
     const ac = () => {
@@ -24,144 +22,34 @@
       if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return null;
       if (!ctx) {
         try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { on = false; return null; }
-        // 音が重なっても割れないよう、最後にコンプレッサーを通す
-        const comp = ctx.createDynamicsCompressor();
-        comp.threshold.value = -18; comp.knee.value = 12; comp.ratio.value = 4;
-        comp.attack.value = 0.003; comp.release.value = 0.12;
-        master = ctx.createGain();
-        master.gain.value = 0.7;
-        master.connect(comp).connect(ctx.destination);
-        noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-        const d = noiseBuf.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+        out = ctx.createGain();
+        out.gain.value = 0.5;
+        out.connect(ctx.destination);
+        bank = load(ctx);
       }
       if (ctx.state === 'suspended') ctx.resume();
       return ctx;
     };
-    const rnd = (a, b) => a + Math.random() * (b - a);
-    const T60 = 6.9078;   // 振幅が 1/1000（-60 dB）になるまでの時間を時定数に直す係数
-
-    // 立ち上がり 2 ms の後に指数減衰する音量エンベロープ。立ち上がりがないとプツッと鳴る
-    function env(a, t0, peak, t60, out = master) {
-      const g = a.createGain();
-      g.gain.setValueAtTime(0, t0);
-      g.gain.linearRampToValueAtTime(peak, t0 + 0.002);
-      g.gain.setTargetAtTime(0, t0 + 0.002, t60 / T60);
-      g.connect(out);
-      return g;
+    async function load(a) {
+      const list = await (await fetch(new URL('sfx.json', base))).json();
+      const entries = await Promise.all(Object.entries(list).map(async ([name, files]) => [name,
+        await Promise.all(files.map(async (f) => a.decodeAudioData(await (await fetch(new URL(`${f}.${ext}`, base))).arrayBuffer()))),
+      ]));
+      return Object.fromEntries(entries);
     }
-
-    // モーダル合成: modes = [[周波数比, 相対振幅, 残響時間 s], ...]
-    function modal(a, t0, base, modes, gain, jitter = 0.04) {
-      for (const [ratio, amp, t60] of modes) {
-        const o = a.createOscillator();
-        o.frequency.value = base * ratio * rnd(1 - jitter, 1 + jitter);
-        const len = t60 * rnd(0.8, 1.2);
-        o.connect(env(a, t0, gain * amp, len));
-        o.start(t0); o.stop(t0 + len + 0.05);
-      }
-    }
-
-    // 帯域を絞ったノイズの一瞬の音。叩いた瞬間の擦れや砂粒の音に使う
-    function burst(a, t0, freq, q, gain, t60, type = 'bandpass') {
-      const src = a.createBufferSource();
-      src.buffer = noiseBuf;
-      const f = a.createBiquadFilter();
-      f.type = type; f.frequency.value = freq; f.Q.value = q;
-      src.connect(f).connect(env(a, t0, gain, t60));
-      src.start(t0, Math.random() * 0.9, t60 + 0.05);
-    }
-
-    // 石の固有振動。非整数比にすると打楽器的になり、整数比だと楽器の音になる
-    const STONE = [[1, 1, 0.07], [1.83, 0.6, 0.05], [2.91, 0.4, 0.035], [4.37, 0.25, 0.02]];
-
-    function hit() {
+    // 読み込み中に鳴らした音は、読み込みが終わり次第鳴らす（初回の 1 回だけ少し遅れる）
+    function play(name, gain = 1) {
       const a = ac(); if (!a) return;
-      const t = a.currentTime;
-      modal(a, t, rnd(380, 520), STONE, 0.09, 0.06);
-      burst(a, t, rnd(2500, 4000), 0.8, 0.25, 0.025);   // 表面の擦れ
+      bank.then((b) => {
+        const list = b[name]; if (!list) return;
+        const src = a.createBufferSource();
+        const g = a.createGain();
+        src.buffer = list[Math.floor(Math.random() * list.length)];
+        g.gain.value = gain;
+        src.connect(g).connect(out);
+        src.start();
+      }).catch(() => { /* 読み込めなければ無音のまま */ });
     }
-
-    function breaks() {
-      const a = ac(); if (!a) return;
-      const t = a.currentTime;
-      // 低い「ゴッ」: 周波数を下げながら減衰する正弦波
-      const o = a.createOscillator();
-      o.frequency.setValueAtTime(150, t);
-      o.frequency.exponentialRampToValueAtTime(55, t + 0.15);
-      o.connect(env(a, t, 0.35, 0.18));
-      o.start(t); o.stop(t + 0.25);
-      modal(a, t, rnd(300, 380), STONE, 0.12, 0.05);
-      burst(a, t, 900, 0.6, 0.4, 0.08, 'lowpass');
-      // 破片: 小さな衝突を指数分布の間隔で散らし、だんだん間遠く・小さくする
-      let dt = 0.012;
-      for (let i = 0; i < 14; i++) {
-        dt += -Math.log(1 - Math.random()) * 0.012 * (1 + i * 0.25);
-        const k = 1 - i / 14;
-        if (Math.random() < 0.5) modal(a, t + dt, rnd(900, 2200), STONE.slice(0, 2), 0.035 * k, 0.15);
-        else burst(a, t + dt, rnd(2000, 6000), 2, 0.18 * k, 0.015);
-      }
-    }
-
-    // 短い音程の上昇。UI の操作音は固定の音程より動きがある方が反応として伝わりやすい
-    function blip() {
-      const a = ac(); if (!a) return;
-      const t = a.currentTime;
-      const o = a.createOscillator();
-      o.type = 'triangle';
-      o.frequency.setValueAtTime(700, t);
-      o.frequency.exponentialRampToValueAtTime(1150, t + 0.04);
-      o.connect(env(a, t, 0.12, 0.09));
-      o.start(t); o.stop(t + 0.12);
-    }
-
-    // FM ベル。ratio を整数からずらすと倍音が非整数になり、金属的な響きになる
-    function bell(a, t0, freq, gain, t60, ratio = 3.5, index = 2.2) {
-      const car = a.createOscillator();
-      const mod = a.createOscillator();
-      const depth = a.createGain();
-      car.frequency.value = freq;
-      mod.frequency.value = freq * ratio;
-      // 変調の深さも減衰させ、打った直後は明るく、余韻は丸い音にする
-      depth.gain.setValueAtTime(freq * index, t0);
-      depth.gain.setTargetAtTime(0, t0, t60 / T60 / 2);
-      mod.connect(depth).connect(car.frequency);
-      car.connect(env(a, t0, gain, t60));
-      car.start(t0); mod.start(t0);
-      car.stop(t0 + t60 + 0.05); mod.stop(t0 + t60 + 0.05);
-    }
-
-    function transfer() {
-      const a = ac(); if (!a) return;
-      const t = a.currentTime;
-      [523.25, 659.26, 783.99, 1046.5].forEach((f, i) => bell(a, t + i * 0.055, f, 0.06, 0.25, 2, 0.8));
-    }
-
-    function achieve() {
-      const a = ac(); if (!a) return;
-      const t = a.currentTime;
-      [783.99, 987.77, 1318.5].forEach((f, i) => bell(a, t + i * 0.09, f, 0.09, i === 2 ? 1.2 : 0.5));
-    }
-
-    // ばね: 音程が下がってから戻る動きと、揺れ（ビブラート）の速さの減衰で弾む感じを出す
-    function boing() {
-      const a = ac(); if (!a) return;
-      const t = a.currentTime;
-      const o = a.createOscillator();
-      const lfo = a.createOscillator();
-      const depth = a.createGain();
-      o.frequency.setValueAtTime(220, t);
-      o.frequency.exponentialRampToValueAtTime(380, t + 0.08);
-      o.frequency.exponentialRampToValueAtTime(300, t + 0.3);
-      lfo.frequency.setValueAtTime(28, t);
-      lfo.frequency.exponentialRampToValueAtTime(9, t + 0.3);
-      depth.gain.setValueAtTime(40, t);
-      depth.gain.setTargetAtTime(0, t, 0.08);
-      lfo.connect(depth).connect(o.frequency);
-      o.connect(env(a, t, 0.18, 0.3));
-      o.start(t); lfo.start(t); o.stop(t + 0.35); lfo.stop(t + 0.35);
-    }
-
     return {
       get on() { return on; },
       toggle() {
@@ -169,7 +57,12 @@
         try { localStorage.setItem('sound', on ? 'on' : 'off'); } catch { /* noop */ }
         return on;
       },
-      hit, breaks, blip, transfer, achieve, boing,
+      hit: () => play('hit', 0.7),
+      breaks: () => play('break'),
+      blip: () => play('blip', 0.6),
+      transfer: () => play('transfer', 0.6),
+      achieve: () => play('achieve', 0.7),
+      boing: () => play('boing', 0.8),
     };
   })();
   const soundBtn = $('#sound');

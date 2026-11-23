@@ -67,6 +67,15 @@ function is_stale(string $cached, string ...$sources): bool {
     return array_any($sources, static fn($s) => filemtime($s) > $t);
 }
 
+/** $cached が $sources より古ければ $make($cached) で作り直し、$cached を返す。 */
+function cached(string $cached, array $sources, Closure $make): string {
+    if (is_stale($cached, ...$sources)) {
+        ensure_dir(dirname($cached));
+        $make($cached);
+    }
+    return $cached;
+}
+
 function rrmdir(string $dir): void {
     if (!is_dir($dir)) return;
     $files = new RecursiveIteratorIterator(

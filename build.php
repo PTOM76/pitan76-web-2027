@@ -62,23 +62,23 @@ foreach (['style.css', 'main.js', 'scene.js'] as $f) {
     copy_file(ROOT . "/assets/$f", "$out/assets/$f");
     $versions["assets/$f"] = substr(md5_file(ROOT . "/assets/$f"), 0, 8);
 }
-foreach ($config['images'] + array_fill_keys(array_keys($characters), 480) as $name => $width) {
-    $src = ROOT . "/assets/img/$name.png";
-    $cached = "$cache/img/$name-$width.png";
-    if (is_stale($cached, $src)) {
-        ensure_dir(dirname($cached));
-        resize_png($src, $cached, $width);
-    }
-    copy_file($cached, "$out/assets/img/$name.png");
+// 効果音は手元で生成してコミットしておく。ないときだけ生成する（ffmpeg が必要）
+if (!is_file(ROOT . '/assets/sfx/sfx.json')) {
+    require ROOT . '/scripts/php/sfx.php';
+    Sfx\generate(ROOT . '/assets/sfx');
 }
+foreach (glob(ROOT . '/assets/sfx/*.{ogg,m4a,json}', GLOB_BRACE) as $f) {
+    copy_file($f, "$out/assets/sfx/" . basename($f));
+}
+foreach ($config['images'] +array_fill_keys(array_keys($characters), 480) as $name => $width) {
+    $src = ROOT . "/assets/img/$name.png";
+    $png = cached("$cache/img/$name-$width.png", [$src], static fn($to) => resize_png($src, $to, $width));
+    copy_file($png, "$out/assets/img/$name.png");
+}
+$faviconSrc = ROOT . '/assets/img/favicon-src.png';
 foreach ($config['favicons'] as $name => $size) {
-    $src = ROOT . '/assets/img/favicon-src.png';
-    $cached = "$cache/img/$name.png";
-    if (is_stale($cached, $src, ROOT . '/src/image.php')) {
-        ensure_dir(dirname($cached));
-        round_pixel_icon($src, $cached, $size);
-    }
-    copy_file($cached, "$out/assets/img/$name.png");
+    $png = cached("$cache/img/$name.png", [$faviconSrc, ROOT . '/src/image.php'], static fn($to) => round_pixel_icon($faviconSrc, $to, $size));
+    copy_file($png, "$out/assets/img/$name.png");
 }
 copy_file("$cache/img/favicon-32.png", "$out/favicon.ico");   // /favicon.ico を直接読むブラウザ向け（PNG のまま）
 foreach (array_unique(array_merge([], ...array_values($icons))) as $file) {
@@ -92,15 +92,9 @@ foreach ($thumbs as $t) {
 
 // ---------- ページ ----------
 $ach = array_column($site['achievements'], 'value', 'id');
-View::$shared = [
-    'site' => $site,
-    'config' => $config,
-    'versions' => $versions,
-    'url' => $url,
-    'p' => '',
-];
+$view = new View(['site' => $site, 'config' => $config, 'url' => $url], $versions);
 $pages = [
-    'index.html' => render('index', [
+    'index.html' => $view->render('index', [
         'projects' => $projects,
         'items' => $items,
         'icons' => $icons,
@@ -108,19 +102,15 @@ $pages = [
         'cats' => category_counts($items),
         'log' => recent_log($items, $config['chatlogLines']),
         'facts' => fill_placeholders($site['heroFacts'], array_map(static fn($v) => rtrim($v, '+'), $ach)),
-    ] + View::$shared),
+    ]),
+    // 404 はどの階層の URL でも表示されるため、パスは公開先から書く
+    '404.html' => $view->at($base)->render('404'),
 ];
-View::$shared['p'] = '../';
 foreach ($items as $w) {
-    $pages[$w['page']] = render('work', ['w' => $w] + View::$shared);
+    $pages[$w['page']] = $view->at('../')->render('work', ['w' => $w]);
+    // 掘り当てたときのカード。トップページに読み込んで表示するため、パスはトップ基準
+    $pages[$w['card']] = $view->render('partials/work-card', ['w' => $w, 'loot' => true]);
 }
-// 掘り当てたときのカード。トップページに読み込んで表示するため、パスはトップ基準
-View::$shared['p'] = '';
-foreach ($items as $w) {
-    $pages[$w['card']] = partial('work-card', ['w' => $w, 'loot' => true]);
-}
-View::$shared['p'] = $base;
-$pages['404.html'] = render('404', View::$shared);
 
 foreach ($pages as $path => $html) write_file("$out/$path", $html);
 write_file("$out/.nojekyll", '');
