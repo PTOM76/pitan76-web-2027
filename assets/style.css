@@ -60,6 +60,7 @@ main, .footer { position: relative; z-index: 2; }
 .bar-coords { margin: 0 0 0 14px; padding-left: 14px; border-left: 1px solid var(--ink-2); font: 12px var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .bar nav { display: flex; margin-left: auto; height: 100%; }
 .bar nav a { display: grid; place-items: center; padding: 0 16px; text-decoration: none; font-weight: 700; font-size: 14px; border-left: 2px solid var(--ink); }
+.bar nav a:last-child { border-right: 2px solid var(--ink); }
 .bar nav a:hover { background: var(--hair); }
 .bar-sound, .bar-term { height: 100%; border: 0; border-left: 2px solid var(--ink); cursor: pointer; font: 700 12px var(--mono); }
 .bar-sound { padding: 0 14px; background: var(--panel); min-width: 76px; }
