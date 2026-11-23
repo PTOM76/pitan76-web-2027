@@ -83,8 +83,7 @@ main, .footer { position: relative; z-index: 2; }
 .hero-lead, .hero-facts { max-width: 33em; margin: 0 0 12px; }
 .hero-lead { font-size: clamp(16px, 1.5vw, 19px); font-weight: 700; }
 .hero-facts { color: var(--ink-2); }
-.hero-lead, .hero-facts, .hero-hint { background: var(--veil); }
-.hero-hint { margin: 20px 0 0; font-size: 14px; padding-left: 12px; border-left: 4px solid var(--eye); max-width: 33em; }
+.hero-lead, .hero-facts { background: var(--veil); }
 .hero-sticker { position: relative; justify-self: center; }
 .sticker {
   --dx: 0px; --dy: 0px; --tilt: 0deg;
@@ -116,8 +115,7 @@ main, .footer { position: relative; z-index: 2; }
 .chatlog time { color: var(--hair); }
 .chatlog a { color: var(--eye); text-decoration: none; }
 .chatlog a:hover { text-decoration: underline; }
-/* 古い行ほど薄くする。背景まで薄めると後ろのブロックが透けるため、文字だけを薄くする */
-.chatlog li:nth-child(3) > * , .chatlog li:nth-child(3) { --fade: .8; }
+.chatlog li:nth-child(3) { opacity: .8; }
 .chatlog li:nth-child(4) { opacity: .6; }
 
 /* ---------- section ---------- */
@@ -247,7 +245,7 @@ kbd { font: 12px var(--mono); border: 1px solid currentColor; border-radius: 3px
 .block-tip { position: fixed; left: 0; top: 0; z-index: 44; pointer-events: none; opacity: 0; background: var(--panel); border: 2px solid var(--ink); border-radius: 3px; padding: 4px 10px; font-size: 12px; line-height: 1.4; box-shadow: 3px 3px 0 var(--ink); transition: opacity .1s; }
 .block-tip.show { opacity: 1; }
 .block-tip b { display: block; font: 400 13px var(--dot); }
-.block-tip span { color: var(--ink-2); }
+.block-tip span { display: block; color: var(--ink-2); }
 .block-tip.has-work { background: var(--eye); }
 .block-tip.has-work span { color: var(--on); }
 @media (hover: none) { .block-tip { display: none; } }
@@ -351,7 +349,6 @@ body.bug .ht-en { animation: glitch .25s steps(2) infinite; }
   .chara-card { grid-template-columns: 1fr; justify-items: center; text-align: center; }
   .chara-card img { width: 180px; }
 }
-@media (hover: none) { .hint-pc { display: none; } }
 
 /* ---------- 夜（ダークモード） ---------- */
 html[data-theme="dark"] {

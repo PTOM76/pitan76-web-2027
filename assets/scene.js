@@ -399,7 +399,11 @@ function tick() {
   const prevHover = hovered;
   hovered = hit ? hit.object.userData.block : null;
   // 押した瞬間のブロックを掴む。掴んでいる間は、カーソルが外れてもそのブロックを掘り続ける
-  if (pointerHeld && !grabbed && hovered) grabbed = hovered;
+  if (pointerHeld && !grabbed && hovered) {
+    grabbed = hovered;
+    // 回す・動かす操作を覚えたことを main.js に伝える（掘る操作は block-break で伝わる）
+    if (mode !== 'mine') dispatchEvent(new CustomEvent('block-grab', { detail: { mode } }));
+  }
   if (grabbed && grabbed.alive !== 1) grabbed = null;
   if (grabbed) hovered = grabbed;
   if (hovered !== prevHover) dispatchEvent(new CustomEvent('block-hover', { detail: hovered ? { work: hovered.work } : null }));

@@ -396,15 +396,37 @@
   applyTheme();
 
   /* ---------- ブロックのホバー表示 ---------- */
+  // しばらくブロックにカーソルを合わせていたら表示する。操作の案内は、まだ試していないものを 1 つずつ出す
   const tip = $('#block-tip');
+  const HINTS = [
+    ['mine', '長押しで掘れます'],
+    ['rotate', '右ボタンでドラッグすると回せます'],
+    ['move', 'Shift キーを押しながらドラッグすると動かせます'],
+  ];
+  const learned = new Set();
+  try { (localStorage.getItem('learned') || '').split(',').filter(Boolean).forEach((m) => learned.add(m)); } catch { /* noop */ }
+  try { if (localStorage.getItem('mined') === '1') learned.add('mine'); } catch { /* noop */ }
+  const learn = (m) => {
+    if (learned.has(m)) return;
+    learned.add(m);
+    try { localStorage.setItem('learned', [...learned].join(',')); } catch { /* noop */ }
+    tip.querySelector('.tip-hint')?.remove();
+  };
+  addEventListener('block-break', () => learn('mine'));
+  addEventListener('block-grab', (e) => learn(e.detail.mode));
+  let tipTimer = 0;
   addEventListener('block-hover', (e) => {
     const d = e.detail;
+    clearTimeout(tipTimer);
     if (!d) { tip.classList.remove('show'); return; }
     tip.classList.toggle('has-work', !!d.work);
-    tip.innerHTML = d.work
-      ? `<b>${icon('gem')} 作品入り</b><span>${esc(d.work.cat)} · 長押しで採掘</span>`
-      : '<b>ただのブロック</b><span>長押しで採掘</span>';
+    tip.innerHTML = d.work ? `<b>${icon('gem')} 作品入り</b><span>${esc(d.work.cat)}</span>` : '<b>ただのブロック</b>';
     tip.classList.add('show');
+    // 操作の案内は、しばらく合わせたままのときだけ足す
+    tipTimer = setTimeout(() => {
+      const hint = HINTS.find(([m]) => !learned.has(m))?.[1];
+      if (hint) tip.insertAdjacentHTML('beforeend', `<span class="tip-hint">${esc(hint)}</span>`);
+    }, 1000);
   });
   addEventListener('pointermove', (e) => {
     tip.style.transform = `translate(${e.clientX + 18}px, ${e.clientY + 18}px)`;
