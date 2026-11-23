@@ -5,7 +5,9 @@
     "scripts": {
         "dev": "node scripts/dev.mjs",
         "build": "php build.php",
-        "check": "node scripts/check.mjs"
+        "check": "node scripts/check.mjs",
+        "test": "php tests/php/run.php && playwright test",
+        "test:e2e": "playwright test"
     },
     "engines": {
         "node": ">=20.11"
