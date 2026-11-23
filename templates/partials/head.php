@@ -4,8 +4,10 @@
  * @var array $site @var string $p @var string $url
  * @var string $title ページのタイトル @var string $description @var string $path 公開先からのパス（OGP 用）
  * @var string|null $image OGP 画像（アセットのパス）
+ * @var bool $iconFont Font Awesome を読み込むなら true（アイコンを使わないページでは false）
  */
 $image ??= 'assets/img/og.png';
+$iconFont ??= true;
 $large = $image === 'assets/img/og.png' || str_ends_with($image, '-w.jpg');
 ?>
 <meta charset="utf-8">
@@ -27,9 +29,11 @@ $large = $image === 'assets/img/og.png' || str_ends_with($image, '-w.jpg');
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;700;900&display=swap" rel="stylesheet">
+<?php if ($iconFont): ?>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/fontawesome.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/solid.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/brands.min.css">
+<?php endif; ?>
 <link rel="stylesheet" href="<?= h(asset('assets/style.css')) ?>">
 <script>
 // 表示前にテーマを決め、ちらつきを防ぐ。auto は 6〜18 時を昼、それ以外を夜にする

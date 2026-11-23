@@ -234,14 +234,23 @@ const ray = new THREE.Raycaster();
 // 見出しや段落は横幅いっぱいに広がるため、箱で判定すると文字のない余白でもブロックを触れなくなる
 const UI = 'a,button,input,label,.sk,.work-text,.bar,.terminal,.loot,.chara,.dex,.courier,.toast,.spec,.inv,.filters';
 const TEXT = 'p,h1,h2,h3,li,td,th,dl';
+// 文字の判定をしない入れ物。中の文章を全部調べることになり重いうえ、余白で触れなくなるため
+const CONTAINER = 'html,body,main,section,canvas';
 const range = document.createRange();
 function overUI(e) {
   if (e.target.closest(UI)) return true;
-  const el = e.target.closest(TEXT);
-  if (!el) return false;
-  range.selectNodeContents(el);
-  return [...range.getClientRects()].some((r) =>
-    e.clientX >= r.left - 4 && e.clientX <= r.right + 4 && e.clientY >= r.top && e.clientY <= r.bottom);
+  const el = e.target.closest(TEXT) ?? e.target;
+  if (el.matches(CONTAINER)) return false;
+  // テキストノードだけを測る。要素ごと範囲に入れると、display: block の span や b の箱（横幅いっぱい）まで含まれてしまう
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.data.trim()) continue;
+    range.selectNodeContents(n);
+    for (const r of range.getClientRects()) {
+      if (e.clientX >= r.left - 4 && e.clientX <= r.right + 4 && e.clientY >= r.top && e.clientY <= r.bottom) return true;
+    }
+  }
+  return false;
 }
 let hovered = null;
 let broken = 0;

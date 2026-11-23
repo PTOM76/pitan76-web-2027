@@ -517,7 +517,7 @@
       const k = s.toLowerCase();
       if (!k) return '<span class="err">usage: find &lt;語&gt;</span>';
       const hits = SITE.works.filter((w) => (w.name + ' ' + w.desc + ' ' + w.tags.join(' ')).toLowerCase().includes(k));
-      return hits.length ? hits.slice(0, 12).map((w) => `${esc(w.name.padEnd(28))} ${esc(w.cat)}`).join('\n') + (hits.length > 12 ? `\n… ほか ${hits.length - 12} 件` : '') : '0 件';
+      return hits.length ? hits.slice(0, 12).map((w) => `${esc(padWidth(w.name, 30))} ${esc(w.cat)}`).join('\n') + (hits.length > 12 ? `\n… ほか ${hits.length - 12} 件` : '') : '0 件';
     },
     skills: () => SITE.term.skills,
     curl: (u) => {
@@ -585,6 +585,20 @@
     clear: () => { out.innerHTML = ''; return ''; },
     exit: () => { term.hidden = true; return ''; },
   };
+  // 等幅の画面での表示幅。全角の文字は半角 2 文字分として数える
+  const charWidth = (c) => (/[\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/.test(c) ? 2 : 1);
+  // 表示幅が width になるよう空白で埋める。長ければ … で切る
+  function padWidth(s, width) {
+    let out = '';
+    let w = 0;
+    for (const c of s) {
+      const cw = charWidth(c);
+      if (w + cw > width - 1 && [...s].reduce((n, x) => n + charWidth(x), 0) > width) return out + '…' + ' '.repeat(Math.max(0, width - w - 1));
+      out += c;
+      w += cw;
+    }
+    return out + ' '.repeat(Math.max(0, width - w));
+  }
   // 作品を ID か名前の一部で探す
   function findWork(s) {
     let k = s;

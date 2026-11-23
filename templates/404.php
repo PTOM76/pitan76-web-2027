@@ -6,7 +6,7 @@
 ?><!doctype html>
 <html lang="ja">
 <head>
-<?= partial('head', ['title' => "404 Not Found — {$site['title']}", 'description' => 'ページが見つかりませんでした。', 'path' => '404.html']) ?>
+<?= partial('head', ['title' => "404 Not Found — {$site['title']}", 'description' => 'ページが見つかりませんでした。', 'path' => '404.html', 'iconFont' => false]) ?>
 <meta name="robots" content="noindex">
 </head>
 <body class="page-404">
