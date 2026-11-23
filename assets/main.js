@@ -12,7 +12,6 @@
     // 音は scripts/php/sfx.php で合成した assets/sfx/ のファイルを鳴らす。
     // 同じ名前に複数の候補があるときは毎回ランダムに選び、同じ音の繰り返しを避ける
     const base = new URL('sfx/', document.currentScript.src);
-    const ext = new Audio().canPlayType('audio/ogg; codecs=opus') ? 'ogg' : 'm4a';
     let ctx = null, out = null, bank = null;
     let on = true;
     try { on = localStorage.getItem('sound') !== 'off'; } catch { /* noop */ }
@@ -33,7 +32,7 @@
     async function load(a) {
       const list = await (await fetch(new URL('sfx.json', base))).json();
       const entries = await Promise.all(Object.entries(list).map(async ([name, files]) => [name,
-        await Promise.all(files.map(async (f) => a.decodeAudioData(await (await fetch(new URL(`${f}.${ext}`, base))).arrayBuffer()))),
+        await Promise.all(files.map(async (f) => a.decodeAudioData(await (await fetch(new URL(`${f}.m4a`, base))).arrayBuffer()))),
       ]));
       return Object.fromEntries(entries);
     }

@@ -67,7 +67,7 @@ if (!is_file(ROOT . '/assets/sfx/sfx.json')) {
     require ROOT . '/scripts/php/sfx.php';
     Sfx\generate(ROOT . '/assets/sfx');
 }
-foreach (glob(ROOT . '/assets/sfx/*.{ogg,m4a,json}', GLOB_BRACE) as $f) {
+foreach (glob(ROOT . '/assets/sfx/*.{m4a,json}', GLOB_BRACE) as $f) {
     copy_file($f, "$out/assets/sfx/" . basename($f));
 }
 foreach ($config['images'] +array_fill_keys(array_keys($characters), 480) as $name => $width) {

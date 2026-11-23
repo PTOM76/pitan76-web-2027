@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Sfx;
 
 /**
- * 効果音を物理モデルで合成し、assets/sfx/ に ogg（Opus）と m4a（AAC）で書き出す。
+ * 効果音を物理モデルで合成し、assets/sfx/ に m4a（AAC）で書き出す。
  * 使い方: php scripts/php/sfx.php（ffmpeg が必要）。build.php は assets/sfx/sfx.json がないときだけ呼ぶ
  *
  * 参考にした手法
@@ -334,10 +334,8 @@ function generate(string $out): void {
             $base = $count > 1 ? "$name-$v" : $name;
             $wav = "$tmp/sfx-" . getmypid() . "-$base.wav";   // ビルドが同時に走っても衝突しないよう PID を付ける
             writeWav($wav, is_string($fn) ? (__NAMESPACE__ . '\\' . $fn)() : $fn($v));
-            foreach (['ogg' => '-c:a libopus -b:a 64k', 'm4a' => '-c:a aac -b:a 96k'] as $ext => $codec) {
-                exec(sprintf('ffmpeg -y -loglevel error -i %s %s %s', escapeshellarg($wav), $codec, escapeshellarg($out . "/$base.$ext")), $o, $code);
-                if ($code !== 0) throw new \RuntimeException("ffmpeg に失敗しました: $base.$ext");
-            }
+            exec(sprintf('ffmpeg -y -loglevel error -i %s -c:a aac -b:a 96k %s', escapeshellarg($wav), escapeshellarg("$out/$base.m4a")), $o, $code);
+            if ($code !== 0) throw new \RuntimeException("ffmpeg に失敗しました: $base.m4a");
             unlink($wav);
             $manifest[$name][] = $base;
         }
