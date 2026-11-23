@@ -5,18 +5,13 @@
  */
 $full ??= false;
 $top = $full ? '' : $p . 'index.html';
-$nav = [
-    'works' => ['代表作', 'star'],
-    'index' => ['作品一覧', 'table-list'],
-    'inventory' => ['技術スタック', 'toolbox'],
-    'log' => ['これまで', 'clock-rotate-left'],
-];
+$nav = ['works' => '代表作', 'index' => '作品一覧', 'inventory' => '技術スタック', 'log' => 'これまで'];
 ?>
 <header class="bar">
   <a class="bar-logo" href="<?= h($top) ?>#top"><img src="<?= h($p) ?>assets/img/favicon.png" alt="" width="26" height="26"><?= h($site['title']) ?></a>
   <?php if ($full): ?><p class="bar-coords" aria-hidden="true" title="スクロール位置">Y: <span id="coord-y">0</span></p><?php endif; ?>
   <nav class="bar-nav">
-    <?php foreach ($nav as $id => [$label, $ic]): ?><a href="<?= h($top) ?>#<?= $id ?>" data-section="<?= $id ?>"><?= icon($ic) ?><?= h($label) ?></a><?php endforeach; ?>
+    <?php foreach ($nav as $id => $label): ?><a href="<?= h($top) ?>#<?= $id ?>" data-section="<?= $id ?>"><?= h($label) ?></a><?php endforeach; ?>
   </nav>
   <?php if ($full): ?>
   <div class="bar-tools">
