@@ -603,3 +603,8 @@ function tick() {
   requestAnimationFrame(tick);
 }
 tick();
+
+// 自動テスト（tests/e2e/）用の入口。画面上の (x, y) がブロックの操作を止める UI や文字の上かを返す
+window.__scene = {
+  overUI: (x, y) => overUI({ target: document.elementFromPoint(x, y) ?? document.body, clientX: x, clientY: y }),
+};
