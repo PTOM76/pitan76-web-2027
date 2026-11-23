@@ -8,7 +8,7 @@ declare(strict_types=1);
 function terminal_text(array $site, array $projects): array {
     $commands = [
         'help', 'whoami', 'ls', 'open <n>', 'find <語>', 'skills', 'curl works/<作品>', 'ftp get <作品>',
-        'smtp send <作品>', 'dex', 'theme <auto|light|dark>', 'goto <section>', 'bug', 'sudo', 'clear', 'exit',
+        'smtp send <作品>', 'dex', 'theme <auto|light|dark>', 'goto <section>', 'bug', 'reset', 'sudo', 'clear', 'exit',
     ];
     $groups = array_map(
         static fn($g) => str_pad($g['name'], 15) . implode(', ', $g['items']),

@@ -24,6 +24,9 @@
         </button></li>
       <?php endforeach; ?>
     </ul>
-    <p class="dex-hint">背景のブロックを掘って作品を見つけると、ここに登録されます。記録はこのブラウザに保存されます。</p>
+    <div class="dex-foot">
+      <p class="dex-hint">背景のブロックを掘って作品を見つけると、ここに登録されます。記録はこのブラウザに保存されます。</p>
+      <button type="button" class="dex-reset" id="dex-reset"><?= icon('rotate-left') ?> 記録をリセット</button>
+    </div>
   </div>
 </div>

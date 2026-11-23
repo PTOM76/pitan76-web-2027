@@ -71,8 +71,9 @@
   soundBtn.addEventListener('click', () => { sound.toggle(); paintSound(); sound.blip(); });
   addEventListener('block-hit', () => sound.hit());
 
-  /* ---------- 実績 ---------- */
+  /* ---------- 実績（解除した実績はブラウザに記録し、同じ実績を二度出さない） ---------- */
   const unlocked = new Set();
+  try { for (const id of JSON.parse(localStorage.getItem('achievements') || '[]')) unlocked.add(id); } catch { /* noop */ }
   function toast(label, title, name) {
     const el = document.createElement('div');
     el.className = 'toast';
@@ -83,6 +84,7 @@
   function achieve(id, title, name = 'star') {
     if (unlocked.has(id)) return;
     unlocked.add(id);
+    try { localStorage.setItem('achievements', JSON.stringify([...unlocked])); } catch { /* noop */ }
     sound.achieve();
     toast('実績解除', title, name);
   }
@@ -356,6 +358,25 @@
   $('#dex-close').addEventListener('click', () => { dex.hidden = true; });
   dex.addEventListener('click', (e) => { if (e.target === dex) dex.hidden = true; });
   addEventListener('keydown', (e) => { if (e.key === 'Escape' && loot.hidden && chara.hidden) dex.hidden = true; });
+  // 図鑑の記録と実績を消す。テーマや効果音などの設定は残す
+  function resetProgress() {
+    found.clear();
+    unlocked.clear();
+    try { ['dex', 'achievements'].forEach((k) => localStorage.removeItem(k)); } catch { /* noop */ }
+    for (const b of dexSlots.values()) {
+      b.classList.remove('is-found');
+      b.disabled = true;
+      b.title = '';
+      b.setAttribute('aria-label', '未発見');
+    }
+    renderDex();
+  }
+  $('#dex-reset').addEventListener('click', () => {
+    if (!confirm('図鑑の記録と実績をすべて消します。よろしいですか？')) return;
+    resetProgress();
+    sound.blip();
+    toast('リセット', '図鑑の記録と実績を消しました', 'rotate-left');
+  });
   function register(w) {
     if (found.has(w.id)) return;
     found.add(w.id);
@@ -557,6 +578,10 @@
       return `200 PORT command successful.\n150 Opening BINARY mode data connection for ${esc(w.id)}`;
     },
     pitan: () => 'にゃ。',
+    reset: () => {
+      resetProgress();
+      return '図鑑の記録と実績を消しました。';
+    },
     clear: () => { out.innerHTML = ''; return ''; },
     exit: () => { term.hidden = true; return ''; },
   };

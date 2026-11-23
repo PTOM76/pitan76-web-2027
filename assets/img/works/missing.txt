@@ -82,7 +82,6 @@ tuibian-menu
 viewedit_plugin
 wevocal-lib
 wevocal-plugin-packages
-wevocal-studio
 wevocal-vstbridge
 wikichree_dev_plugins
 yahoo_plugin

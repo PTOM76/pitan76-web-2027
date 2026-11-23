@@ -194,8 +194,9 @@ function icon_sources(array $w): Generator {
     foreach ([$site['modparks'] ?? null, $site['chromewebstore'] ?? null] as $page) {
         if ($page) yield page_image($page, 'og:image') ?? '';
     }
-    if ($home = $site['website'] ?? null) {
+    if (($home = $site['website'] ?? null) && preg_match('~^https?://~i', $home)) {
         yield page_image($home, 'icon') ?? '';
+        yield manifest_icon($home) ?? '';
         yield url_origin($home) . '/favicon.ico';
     }
 }
@@ -222,6 +223,19 @@ function page_image(string $page, string $kind): ?string {
         if ($score > $bestScore) [$best, $bestScore] = [resolve_url($page, html_entity_decode($href[1])), $score];
     }
     return $best;
+}
+
+/** ページの Web アプリ マニフェストから、いちばん大きい PNG のアイコン（purpose が any のもの）を探す。 */
+function manifest_icon(string $page): ?string {
+    $html = http_get($page) ?? '';
+    if (!preg_match('~<link\b[^>]*rel=["\']manifest["\'][^>]*href=["\']([^"\']+)~i', $html, $m)
+        && !preg_match('~<link\b[^>]*href=["\']([^"\']+)["\'][^>]*rel=["\']manifest["\']~i', $html, $m)) return null;
+    $url = resolve_url($page, html_entity_decode($m[1]));
+    $icons = json_decode(http_get($url) ?? 'null', true)['icons'] ?? [];
+    $png = array_filter($icons, static fn($i) => is_array($i) && ($i['type'] ?? '') === 'image/png'
+        && !str_contains($i['purpose'] ?? 'any', 'maskable'));
+    usort($png, static fn($a, $b) => (int)($b['sizes'] ?? 0) <=> (int)($a['sizes'] ?? 0));
+    return $png ? resolve_url($url, $png[0]['src']) : null;
 }
 
 /** 取得した画像を GD 画像にする。ICO は中に PNG が入っていれば読む。読めなければ null。 */
