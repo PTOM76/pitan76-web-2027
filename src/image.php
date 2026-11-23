@@ -66,3 +66,58 @@ function round_pixel_icon(string $src, string $dst, int $size): void {
     imagecopyresized($out, $res, 0, 0, 0, 0, $size, $size, 16, 16);   // 最近傍で拡大
     imagepng($out, $dst, 9);
 }
+
+/**
+ * トップページの OGP 画像（1200x630）を作る。背景の方眼、名前と紹介文、キャラクター、足元のブロックを描く。
+ * $font がなければ文字を描かない。
+ */
+function og_image(string $dst, string $sticker, ?string $font, string $name, string $title, string $lead): void {
+    [$w, $h] = [1200, 630];
+    $img = imagecreatetruecolor($w, $h);
+    imagealphablending($img, true);
+    $rgb = static fn(string $hex) => imagecolorallocate($img, ...sscanf($hex, '#%02x%02x%02x'));
+    $ink = $rgb('#161514');
+
+    // 背景と 32px の方眼
+    imagefill($img, 0, 0, $rgb('#dcecfa'));
+    $grid = $rgb('#c8def2');
+    for ($x = 0; $x < $w; $x += 32) imageline($img, $x, 0, $x, $h, $grid);
+    for ($y = 0; $y < $h; $y += 32) imageline($img, 0, $y, $w, $y, $grid);
+
+    // 足元の石ブロック
+    $stone = [$rgb('#a7a39a'), $rgb('#b4b0a6'), $rgb('#9a968c')];
+    for ($x = 0, $i = 0; $x < $w; $x += 64, $i++) {
+        imagefilledrectangle($img, $x, $h - 64, $x + 63, $h - 1, $stone[$i % 3]);
+        imagerectangle($img, $x, $h - 64, $x + 63, $h - 1, $ink);
+        imagesetthickness($img, 1);
+    }
+    imagefilledrectangle($img, 0, $h - 66, $w, $h - 64, $ink);
+
+    // キャラクター
+    $src = imagecreatefrompng($sticker);
+    $size = 470;
+    imagecopyresampled($img, $src, $w - $size - 40, $h - 64 - $size + 30, 0, 0, $size, $size, imagesx($src), imagesy($src));
+
+    if ($font !== null) {
+        imagettftext($img, 104, 0, 72, 200, $ink, $font, $name);
+        imagettftext($img, 30, 0, 78, 262, $rgb('#4a4640'), $font, $title);
+        $y = 340;
+        foreach (wrap_text($lead, $font, 26, 600) as $line) {
+            imagettftext($img, 26, 0, 78, $y, $ink, $font, $line);
+            $y += 44;
+        }
+    }
+    imagepng($img, $dst, 9);
+}
+
+/** 文章を 1 行が $width px 以内になるように、1 文字ずつ測って折り返す。 */
+function wrap_text(string $text, string $font, float $size, int $width): array {
+    $lines = [''];
+    foreach (mb_str_split($text) as $ch) {
+        $next = end($lines) . $ch;
+        $box = imagettfbbox($size, 0, $font, $next);
+        if ($box[2] - $box[0] > $width && end($lines) !== '') $lines[] = $ch;
+        else $lines[array_key_last($lines)] = $next;
+    }
+    return $lines;
+}

@@ -9,6 +9,7 @@
 <head>
 <?= partial('head', ['title' => $site['title'], 'description' => $site['description'], 'path' => '']) ?>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"}}</script>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" crossorigin>
 </head>
 <body>
 

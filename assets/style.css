@@ -189,7 +189,8 @@ body.gl .work-slot img { visibility: hidden; }
 
 /* ---------- inventory（ゲームの持ち物欄。ブロックと同じ世界観） ---------- */
 .inventory { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 28px; }
-.inv { --sk-bg: #c6c6c6; padding: 14px; }
+/* 持ち物欄は昼夜で色を変えない。テーマで変わる --ink をここで固定する */
+.inv { --sk-bg: #c6c6c6; --ink: #2b1710; --ink-2: #6e5d55; padding: 14px; color: #3f3f3f; }
 .inv-label { margin: 0 0 10px; font: 400 16px var(--dot); }
 .inv ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 4px; }
 .slot {
@@ -247,8 +248,18 @@ kbd { font: 12px var(--mono); border: 1px solid currentColor; border-radius: 3px
 .block-tip b { display: block; font: 400 13px var(--dot); }
 .block-tip span { color: var(--ink-2); }
 .block-tip.has-work { background: var(--eye); }
-.block-tip.has-work span { color: var(--ink); }
+.block-tip.has-work span { color: var(--on); }
 @media (hover: none) { .block-tip { display: none; } }
+
+/* ---------- ブロックの操作 ---------- */
+body.on-block { cursor: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='28'%20height='22'%20viewBox='0%200%2014%2011'%20shape-rendering='crispEdges'%3E%3Crect%20x='4'%20y='0'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='5'%20y='0'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='6'%20y='0'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='7'%20y='0'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='3'%20y='1'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='4'%20y='1'%20width='1'%20height='1'%20fill='%23c3ccd2'/%3E%3Crect%20x='5'%20y='1'%20width='1'%20height='1'%20fill='%23c3ccd2'/%3E%3Crect%20x='6'%20y='1'%20width='1'%20height='1'%20fill='%23c3ccd2'/%3E%3Crect%20x='7'%20y='1'%20width='1'%20height='1'%20fill='%23c3ccd2'/%3E%3Crect%20x='8'%20y='1'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='9'%20y='1'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='4'%20y='2'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='5'%20y='2'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='6'%20y='2'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='7'%20y='2'%20width='1'%20height='1'%20fill='%23c3ccd2'/%3E%3Crect%20x='8'%20y='2'%20width='1'%20height='1'%20fill='%23c3ccd2'/%3E%3Crect%20x='9'%20y='2'%20width='1'%20height='1'%20fill='%23c3ccd2'/%3E%3Crect%20x='10'%20y='2'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='6'%20y='3'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='7'%20y='3'%20width='1'%20height='1'%20fill='%23a0662f'/%3E%3Crect%20x='8'%20y='3'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='9'%20y='3'%20width='1'%20height='1'%20fill='%23c3ccd2'/%3E%3Crect%20x='10'%20y='3'%20width='1'%20height='1'%20fill='%23c3ccd2'/%3E%3Crect%20x='11'%20y='3'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='5'%20y='4'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='6'%20y='4'%20width='1'%20height='1'%20fill='%23a0662f'/%3E%3Crect%20x='7'%20y='4'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='9'%20y='4'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='10'%20y='4'%20width='1'%20height='1'%20fill='%23c3ccd2'/%3E%3Crect%20x='11'%20y='4'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='4'%20y='5'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='5'%20y='5'%20width='1'%20height='1'%20fill='%23a0662f'/%3E%3Crect%20x='6'%20y='5'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='10'%20y='5'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='11'%20y='5'%20width='1'%20height='1'%20fill='%23c3ccd2'/%3E%3Crect%20x='12'%20y='5'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='3'%20y='6'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='4'%20y='6'%20width='1'%20height='1'%20fill='%23a0662f'/%3E%3Crect%20x='5'%20y='6'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='10'%20y='6'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='11'%20y='6'%20width='1'%20height='1'%20fill='%23c3ccd2'/%3E%3Crect%20x='12'%20y='6'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='2'%20y='7'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='3'%20y='7'%20width='1'%20height='1'%20fill='%23a0662f'/%3E%3Crect%20x='4'%20y='7'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='11'%20y='7'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='12'%20y='7'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='1'%20y='8'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='2'%20y='8'%20width='1'%20height='1'%20fill='%23a0662f'/%3E%3Crect%20x='3'%20y='8'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='0'%20y='9'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='1'%20y='9'%20width='1'%20height='1'%20fill='%23a0662f'/%3E%3Crect%20x='2'%20y='9'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='0'%20y='10'%20width='1'%20height='1'%20fill='%23161514'/%3E%3Crect%20x='1'%20y='10'%20width='1'%20height='1'%20fill='%23161514'/%3E%3C/svg%3E") 6 2, crosshair; }
+body.grabbing { cursor: grabbing; }
+/* 長押ししている間は文字の選択とスマホのメニューを止める */
+body.holding { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+#scene { -webkit-touch-callout: none; }
+/* 初回の案内。scene.js が揺らしているブロックの上に指のアイコンを置く */
+.nudge { position: fixed; left: 0; top: 0; z-index: 43; pointer-events: none; translate: -35% 4px; font-size: 30px; color: var(--eye); filter: drop-shadow(2px 2px 0 var(--ink)) drop-shadow(-1px -1px 0 var(--ink)); animation: nudge-bob 1.2s ease-in-out infinite; }
+@keyframes nudge-bob { 50% { margin-top: 8px; } }
 
 /* ---------- loot ---------- */
 .loot { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; background: rgba(43, 23, 16, .3); padding: 16px; }
@@ -354,7 +365,7 @@ html[data-theme="dark"] .sticker img, html[data-theme="dark"] .courier img, html
 html[data-theme="dark"] .courier-log { background: #000; color: var(--ink); }
 html[data-theme="dark"] .chatlog li { background: rgba(0, 0, 0, .6); }
 ::selection, .bar nav a:hover, .bar-sound:hover, .bar-theme:hover, .bar-dex:hover, .bar-term, .index a:hover, .block-tip.has-work,
-.loot-get, .loot-links a, .work-links a:first-child, .loot-close:hover, .term-bar button { color: var(--on); }
+.loot-get, .loot-links a, .work-links a:first-child, .loot-close:hover, .term-bar button, .filter:hover, .index-more { color: var(--on); }
 body { transition: background-color .4s; }
 
 /* ---------- テーマ・図鑑のボタン ---------- */

@@ -5,7 +5,8 @@
  * @var string $title ページのタイトル @var string $description @var string $path 公開先からのパス（OGP 用）
  * @var string|null $image OGP 画像（アセットのパス）
  */
-$image ??= 'assets/img/pitan.png';
+$image ??= 'assets/img/og.png';
+$large = $image === 'assets/img/og.png' || str_ends_with($image, '-w.jpg');
 ?>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,7 +15,10 @@ $image ??= 'assets/img/pitan.png';
 <meta property="og:site_name" content="<?= h($site['title']) ?>">
 <meta property="og:title" content="<?= h($title) ?>">
 <meta property="og:description" content="<?= h($description) ?>">
+<meta property="og:type" content="<?= $path === '' ? 'website' : 'article' ?>">
+<?php if ($url !== ''): ?><meta property="og:url" content="<?= h("$url/$path") ?>"><?php endif; ?>
 <meta property="og:image" content="<?= h(($url !== '' ? "$url/" : $p) . $image) ?>">
+<meta name="twitter:card" content="<?= $large ? 'summary_large_image' : 'summary' ?>">
 <?php if ($url !== ''): ?><link rel="canonical" href="<?= h("$url/$path") ?>"><?php endif; ?>
 <meta name="theme-color" content="#dcecfa">
 <link rel="icon" href="<?= h($p) ?>assets/img/favicon-32.png" sizes="32x32">

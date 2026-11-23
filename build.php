@@ -80,6 +80,12 @@ foreach ($config['favicons'] as $name => $size) {
     $png = cached("$cache/img/$name.png", [$faviconSrc, ROOT . '/src/image.php'], static fn($to) => round_pixel_icon($faviconSrc, $to, $size));
     copy_file($png, "$out/assets/img/$name.png");
 }
+// OGP 画像。文字は DotGothic16 で描く（取得できなければ文字なし）
+$font = "$cache/fonts/DotGothic16.ttf";
+if (!is_file($font) && ($raw = http_get($config['ogFont'])) !== null) write_file($font, $raw);
+$og = cached("$cache/img/og.png", [ROOT . '/assets/img/pitan.png', ROOT . '/data/site.json', ROOT . '/src/image.php'],
+    static fn($to) => og_image($to, ROOT . '/assets/img/pitan.png', is_file($font) ? $font : null, 'ぴたん', $site['title'], $site['lead']));
+copy_file($og, "$out/assets/img/og.png");
 copy_file("$cache/img/favicon-32.png", "$out/favicon.ico");   // /favicon.ico を直接読むブラウザ向け（PNG のまま）
 foreach (array_unique(array_merge([], ...array_values($icons))) as $file) {
     copy_file("$cache/icons/$file", "$out/assets/icons/$file");

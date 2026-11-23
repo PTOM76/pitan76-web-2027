@@ -66,6 +66,7 @@
     "favicon-32": 32,
     "apple-touch-icon": 192
   },
+  "ogFont": "https://github.com/google/fonts/raw/main/ofl/dotgothic16/DotGothic16-Regular.ttf",
   "indexInitial": 24,
   "chatlogLines": 4
 }

@@ -35,5 +35,6 @@
 </div>
 
 <div class="block-tip" id="block-tip" aria-hidden="true"></div>
+<div class="nudge" id="nudge" aria-hidden="true" hidden><?= icon('hand-pointer') ?></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <pre class="debug" id="debug" hidden></pre>
