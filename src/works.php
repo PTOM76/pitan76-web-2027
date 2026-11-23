@@ -192,7 +192,7 @@ function icon_sources(array $w): Generator {
         yield json_decode(http_get("https://api.cfwidget.com/$cf") ?? 'null', true)['thumbnail'] ?? '';
     }
     foreach ([$site['modparks'] ?? null, $site['chromewebstore'] ?? null] as $page) {
-        if ($page) yield page_image($page, 'og:image') ?? '';
+        if ($page) yield work_og_image($page) ?? '';
     }
     if (($home = $site['website'] ?? null) && preg_match('~^https?://~i', $home)) {
         yield page_image($home, 'icon') ?? '';
@@ -242,6 +242,18 @@ function page_image(string $page, string $kind): ?string {
         if ($score > $bestScore) [$best, $bestScore] = [resolve_url($page, $href), $score];
     }
     return $best;
+}
+
+/**
+ * 作品ページの OGP 画像。作品の画像が登録されていないときにサイトが出す既定の画像なら null を返す
+ * （ModParks はアイコンのないプロジェクトに、サイト自体のアイコン /icon.png を出す）。
+ * 既定の画像とみなすのは、トップページと同じ画像か、同じサイトのルート直下にある画像。
+ */
+function work_og_image(string $page): ?string {
+    $image = page_image($page, 'og:image');
+    if ($image === null || $image === page_image(url_origin($page) . '/', 'og:image')) return null;
+    $siteWide = url_origin($image) === url_origin($page) && substr_count(parse_url($image, PHP_URL_PATH) ?? '/', '/') <= 1;
+    return $siteWide ? null : $image;
 }
 
 /** ページの Web アプリ マニフェストから、いちばん大きい PNG のアイコン（purpose が any のもの）を探す。 */

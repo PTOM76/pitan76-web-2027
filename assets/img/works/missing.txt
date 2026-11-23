@@ -66,6 +66,7 @@ pukistatic_plugin
 pukiwiki-supporter
 pukiwiki_bot
 reaper_video_script
+recipe_image_exporter
 region2_plugin
 select_navi_plugin
 skript_scripts
