@@ -59,8 +59,15 @@ foreach (array_keys($notes) as $id) {
 if (!$dev) rrmdir($out);   // 開発時は監視中のサーバーと競合しないよう上書きのみ
 
 $versions = [];
+require_once ROOT . '/scripts/php/minify.php';
 foreach (['style.css', 'main.js', 'scene.js'] as $f) {
-    copy_file(ROOT . "/assets/$f", "$out/assets/$f");
+    if ($dev) {
+        copy_file(ROOT . "/assets/$f", "$out/assets/$f");   // 開発時はデバッグしやすいよう圧縮しない
+    } else {
+        ensure_dir("$out/assets");
+        $src = file_get_contents(ROOT . "/assets/$f");
+        file_put_contents("$out/assets/$f", str_ends_with($f, '.css') ? Minify\css($src) : Minify\js($src));
+    }
     $versions["assets/$f"] = substr(md5_file(ROOT . "/assets/$f"), 0, 8);
 }
 // 効果音は手元で生成してコミットしておく。ないときだけ生成する（ffmpeg が必要）
