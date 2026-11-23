@@ -50,6 +50,7 @@ GitHub Actionsでは `PITAN_BASE` と `PITAN_URL` をGitHub Pagesの設定から
 | `assets/main.js` | ページの演出（ターミナル、実績、作品索引など） |
 | `assets/scene.js` | Three.jsによる作品ブロックの3D表現 |
 | `assets/img/` | キャラクター画像（透過PNG） |
+| `assets/img/works/` | 作品のアイコン。ビルド時にModrinth、CurseForge、サイトのfaviconなどから取得して保存する。取得できなかった作品は `missing.txt` に記録し、再取得しない |
 | `build.php` | ビルドの入口。データの読み込みから出力までの流れ |
 | `scripts/check.mjs` | 構文チェック |
 | `scripts/dev.mjs` | 開発サーバー |

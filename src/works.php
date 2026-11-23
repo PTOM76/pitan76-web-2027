@@ -87,7 +87,7 @@ function build_items(array $works, array $thumbs, array $icons, array $notes, ar
             'tags' => $w['tag'] ?? [],
             'thumb' => $thumb ? "assets/works/{$thumb['file']}" : null,
             'faces' => $thumb['faces'] ?? 0,
-            'icon' => isset($icons[$id]) ? "assets/works/icons/{$icons[$id]}" : null,
+            'icon' => isset($icons[$id]) ? "assets/img/works/{$icons[$id]}" : null,
             'version' => $w['version'] ?? '',
             'license' => $w['license'] ?? '',
             'mc' => $w['custom']['mcversion'] ?? '',
@@ -135,29 +135,39 @@ function category_counts(array $items): array {
 }
 
 /**
- * 作品のアイコンを取得し、64px の PNG にして $dir に保存する。返り値は 作品 ID => ファイル名。
+ * 作品のアイコンを取得し、64px の PNG にして $dir（リポジトリの assets/img/works/）に保存する。返り値は 作品 ID => ファイル名。
  * 図鑑ではアイコンを、ブロックの面では作品画像を優先して使う。
- * 取得できなかった作品は "ID.none" を置き、次のビルドで取得し直さない（やり直すときは $dir を削除する）。
+ * 一度保存したアイコンは取得し直さない。取得できなかった作品は $dir/missing.txt に記録し、次のビルドでは試さない
+ * （取得し直すときは、該当の PNG や missing.txt の行を削除する）。
  */
 function work_icons(array $works, string $dir): array {
     ensure_dir($dir);
+    $missingFile = "$dir/missing.txt";
+    $missing = is_file($missingFile) ? array_flip(file($missingFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES)) : [];
     $out = [];
     foreach ($works as $w) {
         $id = slug($w['id']);
         $file = "$dir/$id.png";
-        if (!is_file($file) && !is_file("$dir/$id.none")) {
+        if (!is_file($file) && !isset($missing[$id])) {
             $img = array_find_value(icon_sources($w), static fn(string $url) => $url === '' ? null : decode_icon(http_get($url)));
             if ($img) {
                 $res = transparent_canvas(64, 64);
                 imagecopyresampled($res, $img, 0, 0, 0, 0, 64, 64, imagesx($img), imagesy($img));
                 imagepng($res, $file, 9);
             } else {
-                touch("$dir/$id.none");
+                $missing[$id] = true;
                 warn("icon not found: {$w['id']}");
             }
         }
         if (is_file($file)) $out[$w['id']] = "$id.png";
     }
+    // 内容が変わったときだけ書き込む。毎回書くと、開発サーバーが変更を検知して再ビルドを繰り返す
+    $ids = array_keys($missing);
+    sort($ids);
+    $list = implode("
+", $ids) . "
+";
+    if (!is_file($missingFile) || file_get_contents($missingFile) !== $list) write_file($missingFile, $list);
     return $out;
 }
 
