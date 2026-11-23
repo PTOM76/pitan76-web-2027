@@ -2,7 +2,7 @@
 /**
  * トップページ。各セクションは templates/partials/ にある。
  * @var array $site @var array $config @var array $projects @var array $items @var array $icons @var array $characters
- * @var array $cats @var array $log @var Closure $num
+ * @var array $cats @var array $log @var string $facts
  */
 ?><!doctype html>
 <html lang="ja">
@@ -22,7 +22,7 @@
 <?= partial('bar', ['full' => true]) ?>
 
 <main id="top">
-<?= partial('hero', ['log' => $log, 'num' => $num]) ?>
+<?= partial('hero', ['log' => $log, 'facts' => $facts]) ?>
 <?= partial('featured', ['projects' => $projects]) ?>
 <?= partial('works-index', ['items' => $items, 'cats' => $cats]) ?>
 <?= partial('inventory', ['icons' => $icons]) ?>

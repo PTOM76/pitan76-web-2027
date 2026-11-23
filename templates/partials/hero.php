@@ -1,7 +1,7 @@
 <?php
 /**
  * @var array $site @var array $log recent_log() の返り値
- * @var Closure(string): string $num 実績の数値（ラベルで指定）
+ * @var string $facts site.json の heroFacts を展開した HTML
  */
 ?>
 <section class="hero">
@@ -9,7 +9,7 @@
     <h1 class="hero-title"><span class="ht-jp">ぴたん</span><span class="ht-en">PITAN</span></h1>
     <p class="hero-lead"><?= h($site['lead']) ?></p>
     <p class="hero-facts">
-      Minecraft Modは<b class="num"><?= h($num('マイクラMOD 開発作品')) ?></b>作以上つくり、ダウンロード数は合計<b class="num"><?= h($num('マイクラMOD 累計ダウンロード')) ?></b>回を超えました。WikiChree.COMでは<b class="num"><?= h($num('WikiChree.COM のウィキ数')) ?></b>のWikiが動いています。
+      <?= $facts ?>
     </p>
     <?php if ($log): ?>
     <ol class="chatlog" aria-label="最近の更新">

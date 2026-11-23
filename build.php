@@ -92,7 +92,7 @@ foreach ($thumbs as $t) {
 }
 
 // ---------- ページ ----------
-$ach = array_column($site['achievements'], 'value', 'label');
+$ach = array_column($site['achievements'], 'value', 'id');
 View::$shared = [
     'site' => $site,
     'config' => $config,
@@ -108,7 +108,7 @@ $pages = [
         'characters' => $characters,
         'cats' => category_counts($items),
         'log' => recent_log($items, $config['chatlogLines']),
-        'num' => static fn(string $label): string => rtrim($ach[$label] ?? '', '+'),
+        'facts' => fill_placeholders($site['heroFacts'], array_map(static fn($v) => rtrim($v, '+'), $ach)),
     ] + View::$shared),
 ];
 View::$shared['p'] = '../';

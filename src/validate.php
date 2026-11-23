@@ -27,12 +27,12 @@ function validate_data(array $data, array $schema, string $where): array {
 }
 
 const SITE_SCHEMA = [
-    'title' => 'string', 'author' => 'string', 'description' => 'string', 'lead' => 'string',
+    'title' => 'string', 'author' => 'string', 'description' => 'string', 'lead' => 'string', 'heroFacts' => 'string',
     'links' => 'array',
     'skills' => ['name' => 'string', 'items' => 'array'],
     'history' => ['period' => 'string', 'items' => 'string'],
     'qualifications' => ['name' => 'string'],
-    'achievements' => ['label' => 'string', 'value' => 'string'],
+    'achievements' => ['id' => 'string', 'label' => 'string', 'value' => 'string'],
     'activities' => 'array',
 ];
 

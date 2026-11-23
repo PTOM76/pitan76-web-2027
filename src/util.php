@@ -73,3 +73,16 @@ function rrmdir(string $dir): void {
     $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
     foreach ($it as $f) $f->isDir() ? rmdir($f->getPathname()) : unlink($f->getPathname());
 }
+
+/**
+ * 文章中の {id} を値に置き換え、HTML として返す。値は <b class="num"> で囲む。
+ * 存在しない id があれば例外を投げる。
+ */
+function fill_placeholders(string $text, array $values): string {
+    $html = preg_replace_callback('/\{(\w+)\}|[^{]+|\{/', static function (array $m) use ($values): string {
+        if (!isset($m[1]) || $m[1] === '') return h($m[0]);
+        if (!array_key_exists($m[1], $values)) throw new RuntimeException("プレースホルダ {{$m[1]}} に対応する値がありません");
+        return '<b class="num">' . h($values[$m[1]]) . '</b>';
+    }, $text);
+    return $html;
+}

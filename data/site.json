@@ -2,6 +2,7 @@
   "title": "PITAN76.NET '27",
   "author": "Pitan",
   "description": "Pitanの制作物と開発プロジェクト。",
+  "heroFacts": "マイクラMODは{mods}作以上つくり、ダウンロード数は合計{downloads}回を超えました。WikiChree.COMでは{wikis}のWikiが動いています。",
   "lead": "Bug-Creator のぴたんです。ModやWebなどを開発している、技術系が好きな機械弱者。28卒。",
   "links": {
     "github": "https://github.com/PTOM76"
@@ -87,15 +88,18 @@
   "achievements": [
     {
       "value": "40+",
-      "label": "マイクラMOD 開発作品"
+      "label": "マイクラMOD 開発作品",
+      "id": "mods"
     },
     {
       "value": "1,350万+",
-      "label": "マイクラMOD 累計ダウンロード"
+      "label": "マイクラMOD 累計ダウンロード",
+      "id": "downloads"
     },
     {
       "value": "90+",
-      "label": "WikiChree.COM のウィキ数"
+      "label": "WikiChree.COM のウィキ数",
+      "id": "wikis"
     }
   ],
   "activities": [
