@@ -102,8 +102,10 @@
   const sections = navLinks.map((a) => document.getElementById(a.dataset.section)).filter(Boolean);
   const markSection = () => {
     // 画面の上から 1/3 の位置を通り過ぎた最後のセクションを、今のセクションとする
+    // ページの最下部では、短くて 1/3 の位置まで届かない最後のセクションを今のセクションとする
     const line = innerHeight / 3;
-    const current = sections.findLast((sec) => sec.getBoundingClientRect().top <= line);
+    const atBottom = innerHeight + scrollY >= document.documentElement.scrollHeight - 4;
+    const current = atBottom ? sections.at(-1) : sections.findLast((sec) => sec.getBoundingClientRect().top <= line);
     navLinks.forEach((a) => a.toggleAttribute('aria-current', a.dataset.section === current?.id));
   };
   addEventListener('scroll', markSection, { passive: true });
@@ -223,7 +225,7 @@
 
   /* ---------- インベントリ ---------- */
   const seen = new Set();
-  const slots = $$('.slot');
+  const slots = $$('#inventory .slot');   // 図鑑のマスも .slot なので、技術スタックの欄に絞る
   slots.forEach((s) => s.addEventListener('pointerenter', () => {
     seen.add(s);
     if (seen.size === slots.length) achieve('inv', '持ち物を全部確認した', 'box-open');
@@ -247,7 +249,7 @@
   let current = couriers[keys[0]];
   let pending = null;
   async function deliver(w, kind) {
-    if (delivering) { pending = w; return; }
+    if (delivering) { pending = { w, kind }; return; }
     delivering = true;
     const file = (w.id || 'item').replace(/[^a-z0-9_-]/gi, '-');
     const c = couriers[kind || courierFor(w)];
@@ -264,7 +266,7 @@
     await wait(reduced ? 0 : 750);
     ccmd.textContent = c.done;
     sound.transfer();
-    await showLoot(w);
+    await showLoot(w, false);
     // カードを閉じるまで（最長 8 秒）その場に残る
     const t0 = performance.now();
     while ((!loot.hidden && performance.now() - t0 < 8000) || !chara.hidden) await wait(200);
@@ -275,7 +277,7 @@
       const next = pending;
       pending = null;
       await wait(500);
-      deliver(next);
+      deliver(next.w, next.kind);
     }
   }
   // 配達中のキャラをタップすると紹介カードを開く
@@ -286,12 +288,12 @@
     $('#chara-proto').textContent = current.proto;
     $('#chara-desc').textContent = current.desc;
     chara.hidden = false;
+    $('#chara-close').focus({ preventScroll: true });
     sound.blip();
     achieve('chara-' + current.key, current.name + 'に会った', 'envelope');
   });
   $('#chara-close').addEventListener('click', () => { chara.hidden = true; });
   chara.addEventListener('click', (e) => { if (e.target === chara) chara.hidden = true; });
-  addEventListener('keydown', (e) => { if (e.key === 'Escape') chara.hidden = true; });
 
   // カードの中身は PHP が作品ごとに works/ID.card.html として出力している。必要になった 1 件だけ読み込む
   const cards = new Map();
@@ -303,7 +305,7 @@
     }
     return cards.get(w.id);
   }
-  async function showLoot(w) {
+  async function showLoot(w, focusCard = true) {
     let html;
     try {
       html = await loadCard(w);
@@ -318,10 +320,11 @@
     // 中身はビルド時に PHP がエスケープ済みの、同じサイト内の HTML
     $('#loot-body').innerHTML = html;
     loot.hidden = false;
+    // 配達で自動的に開いたときは、閲覧中の操作を邪魔しないようフォーカスを動かさない
+    if (focusCard) $('#loot-close').focus({ preventScroll: true });
   }
   loot.addEventListener('click', (e) => { if (e.target === loot) loot.hidden = true; });
   $('#loot-close').addEventListener('click', () => { loot.hidden = true; });
-  addEventListener('keydown', (e) => { if (e.key === 'Escape') loot.hidden = true; });
 
   /* ---------- 作品図鑑（掘り当てた作品をブラウザに記録する） ---------- */
   const found = new Set();
@@ -352,12 +355,12 @@
   function openDex() {
     renderDex();
     dex.hidden = false;
+    $('#dex-close').focus({ preventScroll: true });
     achieve('dex', '図鑑を開いた', 'book');
   }
   $('#dex-open').addEventListener('click', openDex);
   $('#dex-close').addEventListener('click', () => { dex.hidden = true; });
   dex.addEventListener('click', (e) => { if (e.target === dex) dex.hidden = true; });
-  addEventListener('keydown', (e) => { if (e.key === 'Escape' && loot.hidden && chara.hidden) dex.hidden = true; });
   // 図鑑の記録と実績を消す。テーマや効果音などの設定は残す
   function resetProgress() {
     found.clear();
@@ -565,6 +568,7 @@
       themeMode = a;
       try { localStorage.setItem('theme', a); } catch { /* noop */ }
       applyTheme();
+      if (a === 'dark') achieve('night', '夜にした', 'moon');
       return `theme: ${a}`;
     },
     rm: (a) => (a.includes('-rf') ? '<span class="err">やめてください。</span>' : 'rm: missing operand'),
@@ -659,10 +663,16 @@
   });
 
   addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { term.hidden = true; return; }
+    // Escape は、いちばん手前に開いている画面だけを閉じる（重なり順: ターミナル > キャラ > カード > 図鑑）
+    if (e.key === 'Escape') {
+      const top = [term, chara, loot, dex].find((el) => !el.hidden);
+      if (top) top.hidden = true;
+      return;
+    }
     if (e.target.closest('input, textarea')) return;
     if (e.key === '`') { e.preventDefault(); openTerm(); return; }
-    kpos = e.key === konami[kpos] ? kpos + 1 : (e.key === konami[0] ? 1 : 0);
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;   // Caps Lock 中でも効くようにする
+    kpos = key === konami[kpos] ? kpos + 1 : (key === konami[0] ? 1 : 0);
     if (kpos === konami.length) { kpos = 0; bugMode(); }
   });
 
