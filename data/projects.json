@@ -1,10 +1,10 @@
 [
     {
         "work": "wikichree_com",
-        "name": "WikiChree.COM",
+        "name": "WikiChree.COM/DokuFarm",
         "category": "Webサービス",
-        "summary": "PukiWikiをベースにしたWikiホスティングサービス。",
-        "detail": "WikiFarmとして複数のWikiを運営できるサービス。PukiWikiに加え、DokuWiki系エンジンにも対応。",
+        "summary": "PukiWiki/DokuWikiをベースにしたWikiホスティングサービス。",
+        "detail": "WikiFarmとして複数のWikiを設置、運営できるサービス。プラグインの数はかなり豊富、Pkriptを使えばよりカスタマイズ可能！",
         "tags": [
             "PHP",
             "PukiWiki",
