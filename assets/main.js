@@ -13,7 +13,25 @@
     return `<svg class="icon" viewBox="0 0 ${w} ${h}" width="${+(w / h).toFixed(3)}em" height="1em" aria-hidden="true" focusable="false"><path d="${d}"/></svg>`;
   };
   // 画面（<dialog>）の開閉。showModal で開くと、Tab のフォーカスが中に留まり、Escape で手前の画面だけが閉じる
-  const openModal = (d) => { if (!d.open) d.showModal(); };
+  // <dialog> は最前面の層に乗るため、トースト（popover）より手前に出てしまう。
+  // dialog を開いたら印を付け、次にトーストを出すときに出し直して、いちばん上に戻す
+  const behind = new Set();
+  const openModal = (d) => {
+    if (d.open) return;
+    d.showModal();
+    behind.add('#toasts');
+  };
+  // popover を開く。dialog より後ろに回っていれば、閉じて開き直して最前面に戻す
+  // （毎回開き直すと、中のアニメーションが最初からやり直しになるため、必要なときだけにする）
+  function raise(sel) {
+    const el = $(sel);
+    if (!el?.showPopover) return;
+    const open = el.matches(':popover-open');
+    if (open && !behind.has(sel)) return;
+    if (open) el.hidePopover();
+    el.showPopover();
+    behind.delete(sel);
+  }
   const closeModal = (d) => { if (d.open) d.close(); };
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -101,10 +119,8 @@
     const el = document.createElement('div');
     el.className = 'toast';
     el.innerHTML = `<span class="toast-icon">${icon(name)}</span><div><b>${esc(label)}</b>${esc(title)}</div>`;
-    const box = $('#toasts');
-    box.append(el);
-    // 画面（<dialog>）より手前に出すため、出し直して最前面の層のいちばん上に置く
-    if (box.showPopover) { if (box.matches(':popover-open')) box.hidePopover(); box.showPopover(); }
+    $('#toasts').append(el);
+    raise('#toasts');
     setTimeout(() => el.remove(), 4400);
   }
   function achieve(id, title, name = 'star') {
@@ -349,9 +365,15 @@
     }
     // 中身はビルド時に PHP がエスケープ済みの、同じサイト内の HTML
     $('#loot-body').innerHTML = html;
-    openModal(loot);
-    // 配達で自動的に開いたときは、閲覧中の操作を邪魔しないようフォーカスを動かさない
-    if (focusCard) $('#loot-close').focus({ preventScroll: true });
+    // 配達で自動的に開くときはモーダルにしない。モーダルにすると、手前にいる配達のキャラクターが押せなくなり、
+    // 閲覧中のフォーカスも奪うため。図鑑などから開くときはモーダルにする
+    if (focusCard) {
+      if (loot.open && !loot.matches(':modal')) loot.close();
+      openModal(loot);
+      $('#loot-close').focus({ preventScroll: true });
+    } else if (!loot.open) {
+      loot.show();
+    }
   }
   loot.addEventListener('click', (e) => { if (e.target === loot) closeModal(loot); });
   $('#loot-close').addEventListener('click', () => { closeModal(loot); });
@@ -735,8 +757,11 @@
   });
 
   addEventListener('keydown', (e) => {
-    // Escape で手前の画面だけを閉じるのは <dialog> が行う
-    if (e.key === 'Escape') return;
+    // Escape で手前の画面だけを閉じるのは <dialog> が行う。モーダルでない配達のカードだけは、モーダルの画面がないときに閉じる
+    if (e.key === 'Escape') {
+      if (loot.open && !loot.matches(':modal') && !document.querySelector('dialog:modal')) closeModal(loot);
+      return;
+    }
     if (e.target.closest('input, textarea')) return;
     if (e.key === '`') { e.preventDefault(); openTerm(); return; }
     const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;   // Caps Lock 中でも効くようにする

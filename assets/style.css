@@ -321,7 +321,8 @@ body.holding { -webkit-user-select: none; user-select: none; -webkit-touch-callo
 .term-in input { flex: 1; background: none; border: 0; outline: none; color: inherit; font: inherit; }
 
 /* ---------- toasts ---------- */
-.toasts { position: fixed; inset: 64px 16px auto auto; z-index: 60; display: grid; gap: 10px; pointer-events: none; margin: 0; padding: 0; border: 0; background: none; overflow: visible; }
+/* popover にしているため、既定の大きさ（Safari では画面の下まで伸びる）を打ち消し、中身の高さにして上に詰める */
+.toasts { position: fixed; top: 64px; right: 16px; bottom: auto; left: auto; width: auto; height: fit-content; z-index: 60; display: grid; align-content: start; gap: 10px; pointer-events: none; margin: 0; padding: 0; border: 0; background: none; overflow: visible; }
 .toasts:popover-open { display: grid; }
 .toast { width: 290px; padding: 8px 12px; background: var(--ink); color: var(--panel); border-radius: 4px; font-size: 13px; line-height: 1.4; display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: center; box-shadow: 3px 3px 0 var(--eye); animation: toast-in .3s steps(4), toast-out .3s 4s steps(4) forwards; }
 .toast-icon { font-size: 20px; text-align: center; color: var(--eye); }
@@ -329,7 +330,8 @@ body.holding { -webkit-user-select: none; user-select: none; -webkit-touch-callo
 @keyframes toast-in { from { transform: translateY(-140%); } }
 @keyframes toast-out { to { transform: translateY(-140%); opacity: 0; } }
 
-.debug { position: fixed; left: 12px; bottom: 12px; z-index: 60; margin: 0; font: 11px/1.5 var(--mono); background: var(--ink); color: #b6ffb0; padding: 8px 12px; border-radius: 4px; }
+/* デバッグ表示は昼でも夜でも、暗い背景に緑の文字（--ink は夜に明るい色になるため使わない） */
+.debug { position: fixed; left: 12px; bottom: 12px; z-index: 60; margin: 0; font: 11px/1.5 var(--mono); background: rgba(14, 16, 24, .9); color: #b6ffb0; padding: 8px 12px; border-radius: 4px; border: 1px solid #3a4a3a; }
 
 /* ---------- bug mode ---------- */
 body.bug { --sky: #1d120e; --grid: #33241e; --panel: #2b1d18; --ink: #f3ece6; --ink-2: #b9a79d; }

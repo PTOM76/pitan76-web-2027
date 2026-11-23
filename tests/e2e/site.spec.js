@@ -163,3 +163,29 @@ test('音符ブロックでドまで鳴らすと実績、TNT の爆発でも実�
   await expect(page.locator('.toast', { hasText: 'TNT で爆破した' })).toHaveCount(1);
   await expect(page.locator('.toast', { hasText: '一度に 5 個のブロックを吹き飛ばした' })).toHaveCount(1);
 });
+
+test('配達のキャラクターは作品のカードより手前に出て、押すと紹介が開く', async ({ page }) => {
+  await open(page);
+  const id = await firstWorkId(page);
+  await page.evaluate((i) => dispatchEvent(new CustomEvent('block-break', { detail: { count: 1, work: window.SITE.works.find((w) => w.id === i), kind: 'work', chain: false } })), id);
+  await expect(page.locator('#loot')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('#courier')).toHaveClass(/\bshow\b/);
+  // キャラクターの位置で一番手前にある要素が、キャラクターのボタンであること
+  const btn = page.locator('#courier-btn');
+  await page.waitForTimeout(600);   // 画面外から出てくるのを待つ
+  const box = await btn.boundingBox();
+  const onTop = await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('#courier-btn'), [box.x + box.width / 2, box.y + box.height / 2]);
+  expect(onTop).toBe(true);
+  await btn.click();
+  await expect(page.locator('#chara')).toBeVisible();
+});
+
+test('トーストを続けて出しても、表示中のトーストのアニメーションはやり直さない', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => dispatchEvent(new CustomEvent('note-play', { detail: { pitch: 7 } })));
+  await page.waitForTimeout(500);
+  const before = await page.locator('.toast').first().evaluate((el) => el.getAnimations()[0]?.currentTime ?? 0);
+  await page.evaluate(() => dispatchEvent(new CustomEvent('block-explode', { detail: { count: 1 } })));
+  const after = await page.locator('.toast').first().evaluate((el) => el.getAnimations()[0]?.currentTime ?? 0);
+  expect(after).toBeGreaterThanOrEqual(before);
+});
